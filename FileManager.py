@@ -128,8 +128,10 @@ class FileManager:
             "-ac",
             "2",
             output_audio_path,
-            "-y",
+            "-y" if self.force_recreation else "-n",
         ]
+        if not self.force_recreation:
+            return
         result = subprocess.run(ffmpeg_command, capture_output=True, text=True)
         # Extract the duration from FFmpeg output using regex
         duration_match = re.findall(r"time=\d+:\d+:\d+\.\d+", result.stderr)
@@ -139,13 +141,10 @@ class FileManager:
             + int(duration_parts[1]) * 60
             + float(duration_parts[2])
         )
-        print(audio_duration)
         return audio_duration
 
     def cut_videos_based_on_offsets(self):
-        synchronizer = Synchronizer(
-            self.normalized_audiopaths
-        )
+        synchronizer = Synchronizer(self.normalized_audiopaths)
         self.set_offsets(synchronizer.run())
         out_folder = join(self.base_folder, VIDEO_SYNC_FOLDER)
         if not exists(out_folder):
@@ -173,3 +172,7 @@ class FileManager:
             self.cut_video(video_path, out_path, offset - min_offset, audio_duration)
             videos_out_path.append(out_path)
         return audio_out_path, videos_out_path
+
+
+if __name__ == "__main__":
+    pass

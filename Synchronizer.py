@@ -1,7 +1,6 @@
 import numpy as np
 from soundfile import read
 from scipy.signal import fftconvolve
-from scipy.ndimage import gaussian_filter1d
 from tqdm import tqdm
 
 
@@ -28,3 +27,7 @@ class Synchronizer:
             offset = self.find_audio_offset(self.audio_reference, audio)
             audio_offsets.append(offset)
         return audio_offsets
+
+
+if __name__ == "__main__":
+    pass
