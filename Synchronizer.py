@@ -4,6 +4,7 @@ from scipy.signal import fftconvolve
 from scipy.ndimage import gaussian_filter1d
 from tqdm import tqdm
 
+
 class Synchronizer:
     def __init__(self, audio_paths):
         self.audios_to_sync = [self.load_audio(p) for p in audio_paths[:-1]]
@@ -13,13 +14,13 @@ class Synchronizer:
         data, _ = read(audio_path)
         return data
 
-
     def find_audio_offset(self, reference_audio, target_audio):
         # Use fftconvolve over inverted reference audio to compute cross correlation efficiently
-        cross_correlation = fftconvolve(target_audio, reference_audio[::-1], mode='full')
+        cross_correlation = fftconvolve(
+            target_audio, reference_audio[::-1], mode="full"
+        )
         offset = np.argmax(abs(cross_correlation)) - (len(reference_audio) - 1)
         return offset
-
 
     def run(self):
         audio_offsets = []
