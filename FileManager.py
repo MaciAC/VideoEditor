@@ -4,6 +4,8 @@ import subprocess
 from tqdm import tqdm
 import re
 
+from Synchronizer import Synchronizer
+
 AUDIO_FOLDER = "Audio"
 VIDEO_FOLDER = "Videos"
 NORM_AUDIO_FOLDER = "NormAudio"
@@ -64,7 +66,7 @@ class FileManager:
             )
             self.convert_to_wav(input_video_path, out_path)
             out_paths.append(out_path)
-        return out_paths
+        self.normalized_audiopaths = out_paths
 
     def convert_video_for_instagram(self, input_video_path, output_video_path):
         ffmpeg_command = [
@@ -141,6 +143,10 @@ class FileManager:
         return audio_duration
 
     def cut_videos_based_on_offsets(self):
+        synchronizer = Synchronizer(
+            self.normalized_audiopaths
+        )
+        self.set_offsets(synchronizer.run())
         out_folder = join(self.base_folder, VIDEO_SYNC_FOLDER)
         if not exists(out_folder):
             mkdir(out_folder)

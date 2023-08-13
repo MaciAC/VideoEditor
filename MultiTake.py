@@ -8,10 +8,6 @@ class MultiTake:
         self.base_folder = base_folder
         self.file_manager = FileManager(self.base_folder, force_recreation)
         self.file_manager.create_normalized_audiofiles()
-        self.synchonizer = Synchronizer(
-            self.file_manager.create_normalized_audiofiles()
-        )
-        self.file_manager.set_offsets(self.synchonizer.run())
         (
             self.sync_audio_path,
             self.sync_video_paths,
