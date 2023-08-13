@@ -4,7 +4,7 @@ from argparse import ArgumentParser
 
 class MultiTake:
 
-    def __init__(self, base_folder:str, force_recreation):
+    def __init__(self, base_folder:str, force_recreation=False):
         self.base_folder = base_folder
         self.file_manager = FileManager(self.base_folder, force_recreation)
         self.file_manager.create_normalized_audiofiles()
