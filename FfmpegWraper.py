@@ -10,7 +10,7 @@ NORM_VIDEO_CODEC = "libx264"
 
 class FFmpegWrapper:
     FFMPEG_COMMAND = (
-        'ffmpeg -loglevel error -i "{i_path}" {parameters} "{o_path}" {force}'
+        'ffmpeg -loglevel error {input} {parameters} "{o_path}" {force}'
     )
     FFMPEG_COMMAND_INSPECT = ["ffmpeg", "-i", ""]
 
@@ -18,8 +18,10 @@ class FFmpegWrapper:
         self.force_recreation = force_recreation
 
     def create_command(self, parameters: list[str] = [], force=False):
+
+        input = '-i "{}"'.format(self.i_path) if self.i_path != "" else ""
         return self.FFMPEG_COMMAND.format(
-            i_path=self.i_path,
+            input=input,
             parameters=" ".join(parameters),
             o_path=self.o_path,
             force="-y" if (self.force_recreation or force) else "-n",
@@ -77,13 +79,31 @@ class FFmpegWrapper:
         self.o_path = o_path
         parameters = [
             "-ss",
-            str(start_offset_seconds),  # Set the start offset in seconds
+            "{:.1f}".format(start_offset_seconds),  # Set the start offset in seconds
             "-t",
-            str(duration),
+            "{:.1f}".format(duration),
             "-c:v",
             "copy",  # Copy the video codec
             "-c:a",
             "copy",  # Copy the audio codec
+        ]
+        return self.create_command(parameters)
+
+    def pad_video(
+        self, i_path: str, o_path: str, start_pad_seconds: int, duration: int, width, height, frame_rate,
+    ) -> str:
+        self.i_path = ""
+        self.o_path = o_path
+
+        parameters = [
+            "-f", "lavfi",
+            "-i", "anullsrc=r=44100:cl=stereo",
+            "-t", "{:.2f}".format(start_pad_seconds),
+            "-vf" '"color=s={}x{}:rate={}:color=black"'.format(width, height, frame_rate),
+            "-i", i_path,
+            "-filter_complex", '"[0:v][1:v]concat=n=2:v=1:a=0[v]"',
+            "-map", '"[v]"',
+            "-map", "1:a"
         ]
         return self.create_command(parameters)
 

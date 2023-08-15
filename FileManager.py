@@ -12,12 +12,40 @@ NORM_VIDEO_FOLDER = "NormVideo"
 VIDEO_SYNC_FOLDER = "VideoSync"
 
 
+def get_width_height_framerate(input_video):
+    # Run ffprobe to get resolution and frame rate
+    ffprobe_cmd = [
+        "ffprobe",
+        "-v",
+        "error",
+        "-select_streams",
+        "v:0",
+        "-show_entries",
+        "stream=width,height,r_frame_rate",
+        "-of",
+        "csv=s=x:p=0",
+        input_video
+    ]
+    ffprobe_output = subprocess.check_output(ffprobe_cmd, text=True)
+    try:
+        width, height, frame_rate = ffprobe_output.strip().split("x")
+    except ValueError:
+        width, height, frame_rate, _ = ffprobe_output.strip().split("x")
+        print(width, height, frame_rate, _)
+    if '/' in frame_rate:
+        num, den = frame_rate.split('/')
+        frame_rate = float(num)/float(den)
+    else:
+        frame_rate = float(frame_rate)
+    return int(width), int(height), frame_rate
+
 class FileManager:
     def __init__(self, base_folder, force_recreation=False) -> None:
         self.force_recreation = force_recreation
         self.base_folder = base_folder
         self.audio_filepath = self._get_filepaths(AUDIO_FOLDER)[0]
         self.video_filepaths = sorted(self._get_filepaths(VIDEO_FOLDER))
+        self.video_resolution = [get_width_height_framerate(p) for p in self.video_filepaths]
         self.ffmpeg_commands = FFmpegWrapper(self.force_recreation)
 
     def _get_filepaths(self, folder_name):
@@ -129,19 +157,31 @@ class FileManager:
         # manage videos
         videos_out_path = []
         ffmpeg_commands = []
-        for video_path, start_offset, finish_offset in zip(self.video_filepaths, self.start_offsets, self.finish_offsets):
+        for video_path, start_offset, finish_offset, resolution in zip(self.video_filepaths, self.start_offsets, self.finish_offsets, self.video_resolution):
             out_path = join(
                 out_folder,
                 video_path.split("/")[-1].rsplit(".", 1)[0] + ".mp4",
             )
             start_cut = start_offset + start
-            ffmpeg_commands.append(
-                self.ffmpeg_commands.cut_video(
-                    video_path, out_path, start_cut, audio_duration
+            if start_cut >= 0.0:
+                print("Cut", video_path)
+                ffmpeg_commands.append(
+                    self.ffmpeg_commands.cut_video(
+                        video_path, out_path, start_cut, audio_duration
+                    )
                 )
-            )
+            elif start_cut > -audio_duration:
+                print("Pad", video_path)
+                ffmpeg_commands.append(
+                    self.ffmpeg_commands.pad_video(
+                        video_path, out_path, -start_cut, audio_duration, *resolution
+                    )
+                )
+            else:
+                print("video and audio not overlapped", video_path)
             videos_out_path.append(out_path)
-        print("Cut Video...")
+        print("Cut/Pad Video...")
+        print("\n".join(ffmpeg_commands))
         self.run_commands_multiprocess(ffmpeg_commands)
         self.sync_videopaths = videos_out_path
 

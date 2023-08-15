@@ -1,7 +1,6 @@
-from argparse import ArgumentParser
+from argparse import ArgumentParser, ArgumentTypeError
 from FileManager import FileManager
 from MultiTake import MultiTake
-
 from os.path import join
 import cv2
 
@@ -87,6 +86,12 @@ class VideoEditor:
         )
 
 
+def check_positive(value):
+    ivalue = float(value)
+    if ivalue < 0:
+        raise ArgumentTypeError("Has to be 0 or positive" % value)
+    return ivalue
+
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument(
@@ -100,7 +105,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--start",
         action="store",
-        type=float,
+        type=check_positive,
         required=False,
         default=30.0,
         dest="start",
@@ -109,7 +114,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--duration",
         action="store",
-        type=float,
+        type=check_positive,
         required=False,
         default=30.0,
         dest="duration",
@@ -118,7 +123,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--take_dur",
         action="store",
-        type=float,
+        type=check_positive,
         required=False,
         default=3.0,
         dest="take_dur",
