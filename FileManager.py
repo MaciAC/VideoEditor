@@ -105,6 +105,7 @@ class FileManager:
         """
             cut audio from start to start + duration
             compute seconds where each video is present in relation to video and cut
+
         """
         synchronizer = Synchronizer(self.normalized_audiopaths)
         self.set_offsets(synchronizer.run())
@@ -128,14 +129,15 @@ class FileManager:
         # manage videos
         videos_out_path = []
         ffmpeg_commands = []
-        for video_path, offset in zip(self.video_filepaths, self.start_offsets):
+        for video_path, start_offset, finish_offset in zip(self.video_filepaths, self.start_offsets, self.finish_offsets):
             out_path = join(
                 out_folder,
                 video_path.split("/")[-1].rsplit(".", 1)[0] + ".mp4",
             )
+            start_cut = start_offset + start
             ffmpeg_commands.append(
                 self.ffmpeg_commands.cut_video(
-                    video_path, out_path, offset + start, audio_duration
+                    video_path, out_path, start_cut, audio_duration
                 )
             )
             videos_out_path.append(out_path)

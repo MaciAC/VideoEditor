@@ -10,10 +10,11 @@ OUT_FOLDER = "Out"
 
 class VideoEditor:
     def __init__(
-        self, base_folder: str, force_recreation=False, start: int = 30, video_duration: int = 30
+        self, base_folder: str, force_recreation=False, start: int = 30, video_duration: int = 30, take_dur=3.0
     ) -> None:
         self.base_folder = base_folder
         self.video_duration = video_duration
+        self.take_dur = take_dur
         self.file_manager = FileManager(self.base_folder, force_recreation)
         self.file_manager.create_normalized_audiofiles()
         self.file_manager.create_audiovideo_synched(start=start, duration=video_duration)
@@ -40,9 +41,6 @@ class VideoEditor:
             return max_width, height_with_aspect_ratio
 
     def create_video(self):
-        # Duration of each segment in seconds
-        segment_duration = 2
-
         out_folder = self.file_manager.check_in_basefolder_and_create(OUT_FOLDER)
         video_tmp_path = join(out_folder, "tmp.mp4")
         # Create an output video writer
@@ -56,7 +54,7 @@ class VideoEditor:
         idx = 0
         while idx < self.video_duration:
             print("Processing segment", idx)
-            video_idx = (idx // segment_duration) % len(self.multitake.video_paths)
+            video_idx = int(idx // self.take_dur) % len(self.multitake.video_paths)
             cap = self.multitake.get_video_clip(video_idx)
             # get infor from current video in use
             frame_rate = int(cap.get(cv2.CAP_PROP_FPS))
@@ -69,7 +67,7 @@ class VideoEditor:
 
 
             # Extract and write frames for the segment
-            for i in range(frame_rate * segment_duration):
+            for i in range(int(frame_rate * self.take_dur)):
                 ret, frame = cap.read()
                 if not ret:
                     break
@@ -78,7 +76,7 @@ class VideoEditor:
                 resized_frame = cv2.resize(frame, (self.video_out_width, self.video_out_heigth))
                 out.write(resized_frame)
             cap.release()
-            idx += segment_duration
+            idx += self.take_dur
 
         # Release output video writer
         out.release()
@@ -102,25 +100,34 @@ if __name__ == "__main__":
     parser.add_argument(
         "--start",
         action="store",
-        type=int,
+        type=float,
         required=False,
-        default=30,
+        default=30.0,
         dest="start",
-        help="Starting second in the reference audio",
+        help="Starting second in the reference audio in seconds",
     )
     parser.add_argument(
         "--duration",
         action="store",
-        type=int,
+        type=float,
         required=False,
-        default=30,
+        default=30.0,
         dest="duration",
-        help="Duration of the resulting video",
+        help="Duration of the resulting video in seconds",
+    )
+    parser.add_argument(
+        "--take_dur",
+        action="store",
+        type=float,
+        required=False,
+        default=3.0,
+        dest="take_dur",
+        help="Take change period in seconds",
     )
     parser.add_argument("-f", action="store_true", help="Force all files recreation")
 
 
 
     args = parser.parse_args()
-    video_editor = VideoEditor(args.folder, args.f, args.start, args.duration)
+    video_editor = VideoEditor(args.folder, args.f, args.start, args.duration, args.take_dur)
     video_editor.create_video()
