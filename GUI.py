@@ -32,12 +32,13 @@ class VideoTrack:
         self.create_thumbnail()
         self.update()
 
-
     def create_thumbnail(self):
         thumbnails = []
         frame_indices = [
             int(self.total_frames * fraction)
-            for fraction in [i / self.num_thumbnails for i in range(self.num_thumbnails)]
+            for fraction in [
+                i / self.num_thumbnails for i in range(self.num_thumbnails)
+            ]
         ]
 
         for frame_index in frame_indices:
@@ -70,7 +71,9 @@ class VideoTrack:
         if self.window_width != self.canvas.winfo_width():
             if self.widow_width_changed_n_times > 100:
                 self.window_width = self.canvas.winfo_width()
-                self.num_thumbnails = ceil(self.canvas.winfo_width() / self.thumbnail_width)
+                self.num_thumbnails = ceil(
+                    self.canvas.winfo_width() / self.thumbnail_width
+                )
                 self.create_thumbnail()
                 self.widow_width_changed_n_times = 0
             else:
@@ -127,10 +130,16 @@ class VideoViewer:
             ret, frame = self.cap.read()
             if ret:
                 frame = cv2.resize(frame, (self.width, self.height))
-                photo = ImageTk.PhotoImage(image=Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)))
+                photo = ImageTk.PhotoImage(
+                    image=Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+                )
                 self.canvas.delete("video_frame")
-                self.canvas.create_image(0, 0, image=photo, anchor=tk.NW, tags="video_frame")
-                self.canvas.photo = photo  # Prevent PhotoImage from being garbage collected
+                self.canvas.create_image(
+                    0, 0, image=photo, anchor=tk.NW, tags="video_frame"
+                )
+                self.canvas.photo = (
+                    photo  # Prevent PhotoImage from being garbage collected
+                )
 
         self.canvas.after(self.frame_refresh_period, self.update)
 
@@ -156,16 +165,16 @@ class MultiTrackVideoEditor:
         )
         add_track_button.pack()
 
-
         self.play_pause_button = tk.Button(
             root, text="Play/Pause All", command=self.toggle_play_pause
         )
         self.play_pause_button.pack()
 
         # Create a canvas for video view
-        self.video_view_canvas = tk.Canvas(root, width=self.viewer_width, height=self.viewer_height)
+        self.video_view_canvas = tk.Canvas(
+            root, width=self.viewer_width, height=self.viewer_height
+        )
         self.video_view_canvas.pack()
-
 
         self.root.bind("<Configure>", self.on_window_resize)
 
@@ -173,7 +182,6 @@ class MultiTrackVideoEditor:
         new_width = event.width
         for video_track in self.canvas_list:
             video_track.canvas.config(width=new_width)
-
 
     def create_multitake(self):
         """
@@ -208,10 +216,18 @@ class MultiTrackVideoEditor:
             self.canvas_list.append(video_track)
 
         # Create a VideoViewer instance for the selected video
-        self.video_viewer = VideoViewer(self.video_view_canvas, self.multitake.sync_video_paths[0])
+        self.video_viewer = VideoViewer(
+            self.video_view_canvas, self.multitake.sync_video_paths[0]
+        )
         self.video_viewer.play()
         # Add a slider to control the frame shown in the video viewer
-        self.frame_slider = tk.Scale(root, from_=0, to=self.video_viewer.total_frames - 1, orient=tk.HORIZONTAL, command=self.update_video_view)
+        self.frame_slider = tk.Scale(
+            root,
+            from_=0,
+            to=self.video_viewer.total_frames - 1,
+            orient=tk.HORIZONTAL,
+            command=self.update_video_view,
+        )
         self.frame_slider.pack()
 
     def toggle_play_pause(self):
@@ -228,7 +244,6 @@ class MultiTrackVideoEditor:
             timeline_position = int(position) * video_track.total_frames // 100
             video_track.set_current_frame(timeline_position)
 
-
     def update_video_view(self, selected_video):
         # Clear previous contents of the video view canvas
         self.video_view_canvas.delete("all")
@@ -236,7 +251,6 @@ class MultiTrackVideoEditor:
         # Load the selected video
         video_track = VideoTrack(self.video_view_canvas, selected_video)
         video_track.play()
-
 
     def run(self):
         self.root.mainloop()

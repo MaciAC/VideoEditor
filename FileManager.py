@@ -41,7 +41,7 @@ class FileManager:
             [MULTIPROCESS_COMMAND],
             shell=True,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
+            stderr=subprocess.PIPE,
         )
         # Wait for the subprocess to complete
         process.wait()
@@ -49,11 +49,9 @@ class FileManager:
         # Check the return code to determine if the subprocess completed successfully
         return_code = process.returncode
         if return_code == 0:
-            print('Completed!')
+            print("Completed!")
         else:
-            print(f'Subprocess completed with an error (return code: {return_code})')
-
-
+            print(f"Subprocess completed with an error (return code: {return_code})")
 
     def create_normalized_audiofiles(self) -> list[str]:
         """
@@ -77,7 +75,6 @@ class FileManager:
         print("Creating normalized audiofiles...")
         self.run_commands_multiprocess(ffmpeg_commands)
         self.normalized_audiopaths = out_paths
-
 
     def normalize_sync_videofiles(self) -> list[str]:
         """
@@ -148,15 +145,15 @@ class FileManager:
 
         subprocess.run(ffmpeg_command, capture_output=True, text=True)
 
-
     def cut_audio(
         self, input_audio_path, output_audio_path, start_offset_seconds, duration
     ):
-        ffmpeg_command = self.ffmpeg_commands.cut_audio(input_audio_path, output_audio_path, start_offset_seconds, duration)
+        ffmpeg_command = self.ffmpeg_commands.cut_audio(
+            input_audio_path, output_audio_path, start_offset_seconds, duration
+        )
         print("Cut audio...")
 
         self.run_commands_multiprocess([ffmpeg_command], n_processes=1)
-
 
     def cut_videos_based_on_offsets(self, duration: int):
         synchronizer = Synchronizer(self.normalized_audiopaths)
