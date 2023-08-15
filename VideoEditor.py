@@ -10,13 +10,13 @@ OUT_FOLDER = "Out"
 
 class VideoEditor:
     def __init__(
-        self, base_folder: str, force_recreation=False, video_duration: int = 30
+        self, base_folder: str, force_recreation=False, start: int = 30, video_duration: int = 30
     ) -> None:
         self.base_folder = base_folder
         self.video_duration = video_duration
         self.file_manager = FileManager(self.base_folder, force_recreation)
         self.file_manager.create_normalized_audiofiles()
-        self.file_manager.cut_videos_based_on_offsets(duration=video_duration)
+        self.file_manager.create_audiovideo_synched(start=start, duration=video_duration)
         self.file_manager.normalize_sync_videofiles()
 
         self.multitake = MultiTake(
@@ -100,6 +100,15 @@ if __name__ == "__main__":
         help="Folder containing 'Audio' folder with 1 audio file and 'Videos' folder with N videos",
     )
     parser.add_argument(
+        "--start",
+        action="store",
+        type=int,
+        required=False,
+        default=30,
+        dest="start",
+        help="Starting second in the reference audio",
+    )
+    parser.add_argument(
         "--duration",
         action="store",
         type=int,
@@ -113,5 +122,5 @@ if __name__ == "__main__":
 
 
     args = parser.parse_args()
-    video_editor = VideoEditor(args.folder, args.f, args.duration)
+    video_editor = VideoEditor(args.folder, args.f, args.start, args.duration)
     video_editor.create_video()

@@ -23,8 +23,9 @@ class Synchronizer:
     def run(self):
         audio_offsets = []
         for audio in self.audios_to_sync:
-            offset = self.find_audio_offset(self.audio_reference, audio)
-            audio_offsets.append(offset)
+            start_offset = self.find_audio_offset(self.audio_reference, audio)
+            end_offset = self.audio_reference.size - audio.size - start_offset
+            audio_offsets.append((start_offset, end_offset))
         return audio_offsets
 
 

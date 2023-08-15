@@ -28,7 +28,8 @@ class FileManager:
 
     def set_offsets(self, offsets: list[int]) -> None:
         # convert from sample number to second.ms
-        self.offsets = [o / int(NORM_SR) for o in offsets]
+        self.start_offsets = [o[0] / int(NORM_SR) for o in offsets]
+        self.finish_offsets = [o[1] / int(NORM_SR) for o in offsets]
 
     def check_in_basefolder_and_create(self, folder):
         out_folder = join(self.base_folder, folder)
@@ -100,13 +101,15 @@ class FileManager:
         self.run_commands_multiprocess(ffmpeg_commands)
         self.normalized_videopaths = out_paths
 
-    def cut_videos_based_on_offsets(self, duration: int):
+    def create_audiovideo_synched(self, start: int, duration: int):
+        """
+            cut audio from start to start + duration
+            compute seconds where each video is present in relation to video and cut
+        """
         synchronizer = Synchronizer(self.normalized_audiopaths)
         self.set_offsets(synchronizer.run())
         out_folder = self.check_in_basefolder_and_create(VIDEO_SYNC_FOLDER)
-        # zero represents de reference_audio offset, if min offset is negative audio file is cut
-        min_offset = min(self.offsets + [0])
-
+        # Manage audio crop and get final duration
         audio_out_path = join(
             out_folder,
             self.audio_filepath.split("/")[-1].rsplit(".", 1)[0] + ".wav",
@@ -114,28 +117,30 @@ class FileManager:
         ffmpeg_command = self.ffmpeg_commands.cut_audio(
             self.audio_filepath,
             audio_out_path,
-            -min_offset if min_offset < 0 else 0.0,
+            start,
             duration,
         )
         print("Cut audio...")
         self.run_commands_multiprocess([ffmpeg_command], n_processes=1)
         audio_duration = self.ffmpeg_commands.get_audio_duration(audio_out_path)
+        self.sync_audiopath = audio_out_path
+
+        # manage videos
         videos_out_path = []
         ffmpeg_commands = []
-        for video_path, offset in zip(self.video_filepaths, self.offsets):
+        for video_path, offset in zip(self.video_filepaths, self.start_offsets):
             out_path = join(
                 out_folder,
                 video_path.split("/")[-1].rsplit(".", 1)[0] + ".mp4",
             )
             ffmpeg_commands.append(
                 self.ffmpeg_commands.cut_video(
-                    video_path, out_path, offset - min_offset, audio_duration
+                    video_path, out_path, offset + start, audio_duration
                 )
             )
             videos_out_path.append(out_path)
         print("Cut Video...")
         self.run_commands_multiprocess(ffmpeg_commands)
-        self.sync_audiopath = audio_out_path
         self.sync_videopaths = videos_out_path
 
     def video_audio_to_instavideo(
