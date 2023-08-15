@@ -10,3 +10,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+# media
+*.mp3
+*.mp4
