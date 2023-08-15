@@ -20,11 +20,26 @@ class Synchronizer:
         offset = np.argmax(abs(cross_correlation)) - (len(reference_audio) - 1)
         return offset
 
-    def run(self):
+    def run(self) -> list[tuple[float, float]]:
+        """
+        return start and end offsets, both computed having as zero the start and end second of the audio reference.
+        if both offset positive, audio starts and ends before reference
+        reference     |-----------|
+        audio       |------|
+        if both offset negative, audio starts and ends after reference
+        reference     |-----------|
+        audio               |--------|
+        start negative end positive
+        reference     |-----------|
+        audio           |------|
+        start positive end negative
+        reference     |-----------|
+        audio      |-------------------|
+        """
         audio_offsets = []
         for audio in self.audios_to_sync:
             start_offset = self.find_audio_offset(self.audio_reference, audio)
-            end_offset = self.audio_reference.size - audio.size - start_offset
+            end_offset = self.audio_reference.size - (audio.size + start_offset)
             audio_offsets.append((start_offset, end_offset))
         return audio_offsets
 
