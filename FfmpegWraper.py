@@ -70,6 +70,43 @@ class FFmpegWrapper:
         ]
         return self.create_command(parameters)
 
+    def cut_video(
+        self, i_path: str, o_path: str, start_offset_seconds: int, duration: int
+    ) -> str:
+        self.i_path = i_path
+        self.o_path = o_path
+        parameters = [
+            "-ss",
+            str(start_offset_seconds),  # Set the start offset in seconds
+            "-t",
+            str(duration),
+            "-c:v",
+            "copy",  # Copy the video codec
+            "-c:a",
+            "copy",  # Copy the audio codec
+        ]
+        return self.create_command(parameters)
+
+    def join_video_and_audio(
+        self, i_a_path: str, i_v_path: str, o_path: str
+    ) -> str:
+        self.i_path = i_v_path
+        self.o_path = o_path
+        parameters = [
+            "-i",
+            i_a_path,
+            "-vf",
+            "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920",  # Resize and crop
+            "-c:v", "libx264",  # Video codec (H.264)
+            "-preset", "slow",  # Encoding speed
+            "-crf", "23",  # Constant Rate Factor (0-51, lower is higher quality, 23 is a good default)
+            "-c:a", "aac",  # Audio codec (AAC)
+            "-b:a", "128k",  # Audio bitrate
+            "-ar", "44100",  # Sample rate
+            "-ac", "2",  # Stereo
+        ]
+        return self.create_command(parameters)
+
     def get_audio_duration(self, i_path):
         retry = True
         while retry:

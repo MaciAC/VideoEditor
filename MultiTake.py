@@ -8,9 +8,9 @@ class MultiTake:
         self.video_paths = video_paths
 
         self.audio_clip, self.sample_rate = read(self.audio_path, dtype="float64")
-        self.video_clips = [
-            cv2.VideoCapture(video_path) for video_path in self.video_paths
-        ]
+
+    def get_video_clip(self, idx):
+        return cv2.VideoCapture(self.video_paths[idx])
 
 
 if __name__ == "__main__":
