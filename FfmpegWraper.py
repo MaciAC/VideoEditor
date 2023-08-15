@@ -17,12 +17,12 @@ class FFmpegWrapper:
     def __init__(self, force_recreation: bool):
         self.force_recreation = force_recreation
 
-    def create_command(self, parameters: list[str] = []):
+    def create_command(self, parameters: list[str] = [], force=False):
         return self.FFMPEG_COMMAND.format(
             i_path=self.i_path,
             parameters=" ".join(parameters),
             o_path=self.o_path,
-            force="-y" if self.force_recreation else "-n",
+            force="-y" if (self.force_recreation or force) else "-n",
         )
 
     def to_wav(self, i_path: str, o_path: str) -> str:
@@ -110,7 +110,7 @@ class FFmpegWrapper:
             "-ac",
             "2",  # Stereo
         ]
-        return self.create_command(parameters)
+        return self.create_command(parameters, force=True)
 
     def get_audio_duration(self, i_path):
         retry = True
@@ -134,3 +134,7 @@ class FFmpegWrapper:
             except IndexError:
                 sleep(0.01)
                 continue
+
+
+if __name__ == "__main__":
+    pass

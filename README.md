@@ -9,3 +9,4 @@ TODOS:
 - Video effects/transitions
 - Allow to use an extra folder with gifs...
 - 🚧 Allow to execute command with various parameters.
+- Change takes at the rythm of the music.

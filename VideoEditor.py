@@ -26,13 +26,22 @@ class VideoEditor:
         self.video_out_heigth = 1920
         self.video_out_aspect_ratio = self.video_out_width / self.video_out_heigth
 
+
+    def calculate_largest_rect(self, max_width, max_height):
+        # Calculate the width based on the height and aspect ratio
+        width_with_aspect_ratio = int(max_height * self.video_out_aspect_ratio)
+        if width_with_aspect_ratio <= max_width:
+            # The calculated width is within the allowed max width
+            return width_with_aspect_ratio, max_height
+        else:
+            # The calculated width exceeds the allowed max width
+            # Calculate the height based on the width and aspect ratio
+            height_with_aspect_ratio = int(max_width / self.video_out_aspect_ratio)
+            return max_width, height_with_aspect_ratio
+
     def create_video(self):
         # Duration of each segment in seconds
-        segment_duration = 5
-
-        # Output video dimensions
-        output_width = 1080
-        output_height = 1920
+        segment_duration = 2
 
         out_folder = self.file_manager.check_in_basefolder_and_create(OUT_FOLDER)
         video_tmp_path = join(out_folder, "tmp.mp4")
@@ -41,7 +50,7 @@ class VideoEditor:
             video_tmp_path,
             cv2.VideoWriter_fourcc(*"mp4v"),
             30,
-            (output_width, output_height),
+            (self.video_out_width, self.video_out_heigth),
         )
 
         idx = 0
@@ -49,19 +58,24 @@ class VideoEditor:
             print("Processing segment", idx)
             video_idx = (idx // segment_duration) % len(self.multitake.video_paths)
             cap = self.multitake.get_video_clip(video_idx)
+            # get infor from current video in use
             frame_rate = int(cap.get(cv2.CAP_PROP_FPS))
-
+            frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
             # Calculate starting frame index for the current segment
             start_frame = int(frame_rate * idx)
             # Set the starting frame
             cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+
 
             # Extract and write frames for the segment
             for i in range(frame_rate * segment_duration):
                 ret, frame = cap.read()
                 if not ret:
                     break
-                resized_frame = cv2.resize(frame, (output_width, output_height))
+                max_width, max_height = self.calculate_largest_rect(frame_width, frame_height)
+                crop_frame = frame[0:max_width, 0:max_height]
+                resized_frame = cv2.resize(frame, (self.video_out_width, self.video_out_heigth))
                 out.write(resized_frame)
             cap.release()
             idx += segment_duration
@@ -85,7 +99,6 @@ if __name__ == "__main__":
         dest="folder",
         help="Folder containing 'Audio' folder with 1 audio file and 'Videos' folder with N videos",
     )
-    parser.add_argument("-f", action="store_true", help="Force files recreation")
     parser.add_argument(
         "--duration",
         action="store",
@@ -95,7 +108,10 @@ if __name__ == "__main__":
         dest="duration",
         help="Duration of the resulting video",
     )
+    parser.add_argument("-f", action="store_true", help="Force all files recreation")
+
+
 
     args = parser.parse_args()
     video_editor = VideoEditor(args.folder, args.f, args.duration)
-    video_editor.create_video(30)
+    video_editor.create_video()
