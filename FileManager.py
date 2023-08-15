@@ -100,7 +100,6 @@ class FileManager:
         self.run_commands_multiprocess(ffmpeg_commands)
         self.normalized_videopaths = out_paths
 
-
     def cut_videos_based_on_offsets(self, duration: int):
         synchronizer = Synchronizer(self.normalized_audiopaths)
         self.set_offsets(synchronizer.run())
@@ -113,7 +112,10 @@ class FileManager:
             self.audio_filepath.split("/")[-1].rsplit(".", 1)[0] + ".wav",
         )
         ffmpeg_command = self.ffmpeg_commands.cut_audio(
-            self.audio_filepath, audio_out_path, -min_offset if min_offset < 0 else 0.0, duration
+            self.audio_filepath,
+            audio_out_path,
+            -min_offset if min_offset < 0 else 0.0,
+            duration,
         )
         print("Cut audio...")
         self.run_commands_multiprocess([ffmpeg_command], n_processes=1)
@@ -125,18 +127,25 @@ class FileManager:
                 out_folder,
                 video_path.split("/")[-1].rsplit(".", 1)[0] + ".mp4",
             )
-            ffmpeg_commands.append(self.ffmpeg_commands.cut_video(video_path, out_path, offset - min_offset, audio_duration))
+            ffmpeg_commands.append(
+                self.ffmpeg_commands.cut_video(
+                    video_path, out_path, offset - min_offset, audio_duration
+                )
+            )
             videos_out_path.append(out_path)
         print("Cut Video...")
         self.run_commands_multiprocess(ffmpeg_commands)
         self.sync_audiopath = audio_out_path
         self.sync_videopaths = videos_out_path
 
-    def video_audio_to_instavideo(self, input_audio_path, input_video_path, output_video_path):
+    def video_audio_to_instavideo(
+        self, input_audio_path, input_video_path, output_video_path
+    ):
         print("Joining video and audio...")
-        ffmpeg_command = self.ffmpeg_commands.join_video_and_audio(input_audio_path, input_video_path, output_video_path)
+        ffmpeg_command = self.ffmpeg_commands.join_video_and_audio(
+            input_audio_path, input_video_path, output_video_path
+        )
         self.run_commands_multiprocess([ffmpeg_command], 1)
-
 
 
 if __name__ == "__main__":

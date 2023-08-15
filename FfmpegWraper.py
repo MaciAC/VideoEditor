@@ -87,9 +87,7 @@ class FFmpegWrapper:
         ]
         return self.create_command(parameters)
 
-    def join_video_and_audio(
-        self, i_a_path: str, i_v_path: str, o_path: str
-    ) -> str:
+    def join_video_and_audio(self, i_a_path: str, i_v_path: str, o_path: str) -> str:
         self.i_path = i_v_path
         self.o_path = o_path
         parameters = [
@@ -97,13 +95,20 @@ class FFmpegWrapper:
             i_a_path,
             "-vf",
             "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920",  # Resize and crop
-            "-c:v", "libx264",  # Video codec (H.264)
-            "-preset", "slow",  # Encoding speed
-            "-crf", "23",  # Constant Rate Factor (0-51, lower is higher quality, 23 is a good default)
-            "-c:a", "aac",  # Audio codec (AAC)
-            "-b:a", "128k",  # Audio bitrate
-            "-ar", "44100",  # Sample rate
-            "-ac", "2",  # Stereo
+            "-c:v",
+            "libx264",  # Video codec (H.264)
+            "-preset",
+            "slow",  # Encoding speed
+            "-crf",
+            "23",  # Constant Rate Factor (0-51, lower is higher quality, 23 is a good default)
+            "-c:a",
+            "aac",  # Audio codec (AAC)
+            "-b:a",
+            "128k",  # Audio bitrate
+            "-ar",
+            "44100",  # Sample rate
+            "-ac",
+            "2",  # Stereo
         ]
         return self.create_command(parameters)
 

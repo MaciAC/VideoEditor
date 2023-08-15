@@ -5,10 +5,13 @@ from MultiTake import MultiTake
 from os.path import join
 import cv2
 
-OUT_FOLDER = 'Out'
+OUT_FOLDER = "Out"
+
 
 class VideoEditor:
-    def __init__(self, base_folder: str, force_recreation=False, video_duration:int=30) -> None:
+    def __init__(
+        self, base_folder: str, force_recreation=False, video_duration: int = 30
+    ) -> None:
         self.base_folder = base_folder
         self.video_duration = video_duration
         self.file_manager = FileManager(self.base_folder, force_recreation)
@@ -22,8 +25,6 @@ class VideoEditor:
         self.video_out_width = 1080
         self.video_out_heigth = 1920
         self.video_out_aspect_ratio = self.video_out_width / self.video_out_heigth
-
-
 
     def create_video(self):
         # Duration of each segment in seconds
@@ -68,21 +69,31 @@ class VideoEditor:
         # Release output video writer
         out.release()
         cv2.destroyAllWindows()
-        video_out_path = join(out_folder, 'out.mp4')
-        self.file_manager.video_audio_to_instavideo(self.multitake.audio_path, video_tmp_path, video_out_path)
-
+        video_out_path = join(out_folder, "out.mp4")
+        self.file_manager.video_audio_to_instavideo(
+            self.multitake.audio_path, video_tmp_path, video_out_path
+        )
 
 
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument(
-        "--folder", action="store", type=str, required=True, dest="folder",
-        help="Folder containing 'Audio' folder with 1 audio file and 'Videos' folder with N videos"
+        "--folder",
+        action="store",
+        type=str,
+        required=True,
+        dest="folder",
+        help="Folder containing 'Audio' folder with 1 audio file and 'Videos' folder with N videos",
     )
     parser.add_argument("-f", action="store_true", help="Force files recreation")
     parser.add_argument(
-        "--duration", action="store", type=int, required=False, default=30, dest="duration",
-        help="Duration of the resulting video"
+        "--duration",
+        action="store",
+        type=int,
+        required=False,
+        default=30,
+        dest="duration",
+        help="Duration of the resulting video",
     )
 
     args = parser.parse_args()
