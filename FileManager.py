@@ -9,12 +9,14 @@ from Synchronizer import Synchronizer
 AUDIO_FOLDER = "Audio"
 VIDEO_FOLDER = "Videos"
 NORM_AUDIO_FOLDER = "NormAudio"
+NORM_VIDEO_FOLDER = "NormVideo"
 VIDEO_SYNC_FOLDER = "VideoSync"
 INPUT_FILE_IDX = 2
 OUTPUT_FILE_IDX = 10
 NORM_SR = "8000"
-NORM_CODEC = "pcm_s16le"
-
+NORM_AUDIO_CODEC = "pcm_s16le"
+NORM_FPS = "30"
+NORM_VIDEO_CODEC = "libx264"
 
 class FileManager:
     def __init__(self, base_folder, force_recreation=False) -> None:
@@ -40,7 +42,7 @@ class FileManager:
             input_video_path,
             "-vn",  # Disable video processing
             "-acodec",
-            NORM_CODEC,
+            NORM_AUDIO_CODEC,
             "-ar",
             NORM_SR,
             "-ac",
@@ -51,22 +53,61 @@ class FileManager:
         subprocess.run(ffmpeg_command, capture_output=True, text=True)
 
     def create_normalized_audiofiles(self) -> list[str]:
+        """
+        Convert reference audio and reate normalized audio files from video for synch purposes
+        """
         out_folder = join(self.base_folder, NORM_AUDIO_FOLDER)
         if not exists(out_folder):
             mkdir(out_folder)
         out_paths = []
         for input_video_path in tqdm(
             self.video_filepaths + [self.audio_filepath],
-            total=len(self.video_filepaths),
+            total=len(self.video_filepaths)+1,
         ):
             out_path = join(
-                self.base_folder,
-                NORM_AUDIO_FOLDER,
+                out_folder,
                 input_video_path.split("/")[-1].rsplit(".", 1)[0] + ".wav",
             )
             self.convert_to_wav(input_video_path, out_path)
             out_paths.append(out_path)
         self.normalized_audiopaths = out_paths
+
+    def convert_to_mp4(self, input_video_path, output_video_path):
+        ffmpeg_command = [
+            "ffmpeg",
+            "-i",
+            input_video_path,
+            "-an",  # Disable video processing
+            "-vcodec",
+            NORM_VIDEO_CODEC,
+            "-r",
+            NORM_FPS,
+            output_video_path,
+            "-y" if self.force_recreation else "-n",
+        ]
+        subprocess.run(ffmpeg_command, capture_output=True, text=True)
+
+    def normalize_sync_videofiles(self) -> list[str]:
+        """
+        Create copies of all videos normalized
+        """
+        breakpoint()
+        out_folder = join(self.base_folder, NORM_VIDEO_FOLDER)
+        if not exists(out_folder):
+            mkdir(out_folder)
+        out_paths = []
+        for input_video_path in tqdm(
+            self.sync_videopaths,
+            total=len(self.sync_videopaths),
+        ):
+            out_path = join(
+                out_folder,
+                input_video_path.split("/")[-1].rsplit(".", 1)[0] + ".mp4",
+            )
+            self.convert_to_mp4(input_video_path, out_path)
+            out_paths.append(out_path)
+        self.normalized_videopaths = out_paths
+
 
     def convert_video_for_instagram(self, input_video_path, output_video_path):
         ffmpeg_command = [
@@ -112,17 +153,20 @@ class FileManager:
             output_video_path,
             "-y" if self.force_recreation else "-n",
         ]
+
         subprocess.run(ffmpeg_command, capture_output=True, text=True)
 
-    def cut_audio(self, input_audio_path, output_audio_path, start_offset_seconds):
+    def cut_audio(self, input_audio_path, output_audio_path, start_offset_seconds, duration):
         ffmpeg_command = [
             "ffmpeg",
             "-ss",
             str(start_offset_seconds),  # Set the start offset in seconds
+            "-t",
+            str(duration),
             "-i",
             input_audio_path,
             "-acodec",
-            NORM_CODEC,
+            NORM_AUDIO_CODEC,
             "-ar",
             "44100",  # Copy the audio codec
             "-ac",
@@ -143,7 +187,7 @@ class FileManager:
         )
         return audio_duration
 
-    def cut_videos_based_on_offsets(self):
+    def cut_videos_based_on_offsets(self, duration:int):
         synchronizer = Synchronizer(self.normalized_audiopaths)
         self.set_offsets(synchronizer.run())
         out_folder = join(self.base_folder, VIDEO_SYNC_FOLDER)
@@ -158,7 +202,7 @@ class FileManager:
             self.audio_filepath.split("/")[-1].rsplit(".", 1)[0] + ".wav",
         )
         audio_duration = self.cut_audio(
-            self.audio_filepath, audio_out_path, -min_offset if min_offset < 0 else 0.0
+            self.audio_filepath, audio_out_path, -min_offset if min_offset < 0 else 0.0, duration
         )
         videos_out_path = []
         for video_path, offset in tqdm(
@@ -171,7 +215,8 @@ class FileManager:
             )
             self.cut_video(video_path, out_path, offset - min_offset, audio_duration)
             videos_out_path.append(out_path)
-        return audio_out_path, videos_out_path
+        self.sync_audiopath = audio_out_path
+        self.sync_videopaths = videos_out_path
 
 
 if __name__ == "__main__":
