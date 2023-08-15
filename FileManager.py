@@ -1,9 +1,8 @@
 from os.path import join, exists
 from os import listdir, mkdir
 import subprocess
-from tqdm import tqdm
-import re
 
+from FfmpegWraper import FFmpegWrapper, NORM_SR
 from Synchronizer import Synchronizer
 
 AUDIO_FOLDER = "Audio"
@@ -11,12 +10,7 @@ VIDEO_FOLDER = "Videos"
 NORM_AUDIO_FOLDER = "NormAudio"
 NORM_VIDEO_FOLDER = "NormVideo"
 VIDEO_SYNC_FOLDER = "VideoSync"
-INPUT_FILE_IDX = 2
-OUTPUT_FILE_IDX = 10
-NORM_SR = "8000"
-NORM_AUDIO_CODEC = "pcm_s16le"
-NORM_FPS = "30"
-NORM_VIDEO_CODEC = "libx264"
+
 
 class FileManager:
     def __init__(self, base_folder, force_recreation=False) -> None:
@@ -24,6 +18,7 @@ class FileManager:
         self.base_folder = base_folder
         self.audio_filepath = self._get_filepaths(AUDIO_FOLDER)[0]
         self.video_filepaths = sorted(self._get_filepaths(VIDEO_FOLDER))
+        self.ffmpeg_commands = FFmpegWrapper(self.force_recreation)
 
     def _get_filepaths(self, folder_name):
         return [
@@ -35,22 +30,30 @@ class FileManager:
         # convert from sample number to second.ms
         self.offsets = [o / int(NORM_SR) for o in offsets]
 
-    def convert_to_wav(self, input_video_path, output_video_path):
-        ffmpeg_command = [
-            "ffmpeg",
-            "-i",
-            input_video_path,
-            "-vn",  # Disable video processing
-            "-acodec",
-            NORM_AUDIO_CODEC,
-            "-ar",
-            NORM_SR,
-            "-ac",
-            "1",
-            output_video_path,
-            "-y" if self.force_recreation else "-n",
-        ]
-        subprocess.run(ffmpeg_command, capture_output=True, text=True)
+    def run_commands_multiprocess(self, cmds: list[str], silent=False, n_processes=2):
+        CMD_LIST = ".cmd.lst"
+        MULTIPROCESS_COMMAND = f"cat {CMD_LIST} | xargs -n1 -P{n_processes} sh -c"
+        cmds = "'\n'".join(cmds)
+        cmds_str = f"'{cmds}'\n"
+        with open(CMD_LIST, "w") as f:
+            f.write(cmds_str)
+        process = subprocess.Popen(
+            [MULTIPROCESS_COMMAND],
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        # Wait for the subprocess to complete
+        process.wait()
+
+        # Check the return code to determine if the subprocess completed successfully
+        return_code = process.returncode
+        if return_code == 0:
+            print('Completed!')
+        else:
+            print(f'Subprocess completed with an error (return code: {return_code})')
+
+
 
     def create_normalized_audiofiles(self) -> list[str]:
         """
@@ -60,54 +63,43 @@ class FileManager:
         if not exists(out_folder):
             mkdir(out_folder)
         out_paths = []
-        for input_video_path in tqdm(
-            self.video_filepaths + [self.audio_filepath],
-            total=len(self.video_filepaths)+1,
-        ):
+        ffmpeg_commands = []
+        for input_video_path in self.video_filepaths + [self.audio_filepath]:
             out_path = join(
                 out_folder,
                 input_video_path.split("/")[-1].rsplit(".", 1)[0] + ".wav",
             )
-            self.convert_to_wav(input_video_path, out_path)
+            ffmpeg_commands.append(
+                self.ffmpeg_commands.to_wav(input_video_path, out_path)
+            )
+
             out_paths.append(out_path)
+        print("Creating normalized audiofiles...")
+        self.run_commands_multiprocess(ffmpeg_commands)
         self.normalized_audiopaths = out_paths
 
-    def convert_to_mp4(self, input_video_path, output_video_path):
-        ffmpeg_command = [
-            "ffmpeg",
-            "-i",
-            input_video_path,
-            "-an",  # Disable video processing
-            "-vcodec",
-            NORM_VIDEO_CODEC,
-            "-r",
-            NORM_FPS,
-            output_video_path,
-            "-y" if self.force_recreation else "-n",
-        ]
-        subprocess.run(ffmpeg_command, capture_output=True, text=True)
 
     def normalize_sync_videofiles(self) -> list[str]:
         """
         Create copies of all videos normalized
         """
-        breakpoint()
         out_folder = join(self.base_folder, NORM_VIDEO_FOLDER)
         if not exists(out_folder):
             mkdir(out_folder)
         out_paths = []
-        for input_video_path in tqdm(
-            self.sync_videopaths,
-            total=len(self.sync_videopaths),
-        ):
+        ffmpeg_commands = []
+        for input_video_path in self.sync_videopaths:
             out_path = join(
                 out_folder,
                 input_video_path.split("/")[-1].rsplit(".", 1)[0] + ".mp4",
             )
-            self.convert_to_mp4(input_video_path, out_path)
+            ffmpeg_commands.append(
+                self.ffmpeg_commands.to_mp4(input_video_path, out_path)
+            )
             out_paths.append(out_path)
+        print("Creating normalized sync videofiles")
+        self.run_commands_multiprocess(ffmpeg_commands)
         self.normalized_videopaths = out_paths
-
 
     def convert_video_for_instagram(self, input_video_path, output_video_path):
         ffmpeg_command = [
@@ -156,38 +148,17 @@ class FileManager:
 
         subprocess.run(ffmpeg_command, capture_output=True, text=True)
 
-    def cut_audio(self, input_audio_path, output_audio_path, start_offset_seconds, duration):
-        ffmpeg_command = [
-            "ffmpeg",
-            "-ss",
-            str(start_offset_seconds),  # Set the start offset in seconds
-            "-t",
-            str(duration),
-            "-i",
-            input_audio_path,
-            "-acodec",
-            NORM_AUDIO_CODEC,
-            "-ar",
-            "44100",  # Copy the audio codec
-            "-ac",
-            "2",
-            output_audio_path,
-            "-y" if self.force_recreation else "-n",
-        ]
-        if not self.force_recreation:
-            return
-        result = subprocess.run(ffmpeg_command, capture_output=True, text=True)
-        # Extract the duration from FFmpeg output using regex
-        duration_match = re.findall(r"time=\d+:\d+:\d+\.\d+", result.stderr)
-        duration_parts = duration_match[1].replace("time=", "").split(":")
-        audio_duration = (
-            int(duration_parts[0]) * 3600
-            + int(duration_parts[1]) * 60
-            + float(duration_parts[2])
-        )
-        return audio_duration
 
-    def cut_videos_based_on_offsets(self, duration:int):
+    def cut_audio(
+        self, input_audio_path, output_audio_path, start_offset_seconds, duration
+    ):
+        ffmpeg_command = self.ffmpeg_commands.cut_audio(input_audio_path, output_audio_path, start_offset_seconds, duration)
+        print("Cut audio...")
+
+        self.run_commands_multiprocess([ffmpeg_command], n_processes=1)
+
+
+    def cut_videos_based_on_offsets(self, duration: int):
         synchronizer = Synchronizer(self.normalized_audiopaths)
         self.set_offsets(synchronizer.run())
         out_folder = join(self.base_folder, VIDEO_SYNC_FOLDER)
@@ -201,13 +172,15 @@ class FileManager:
             VIDEO_SYNC_FOLDER,
             self.audio_filepath.split("/")[-1].rsplit(".", 1)[0] + ".wav",
         )
-        audio_duration = self.cut_audio(
-            self.audio_filepath, audio_out_path, -min_offset if min_offset < 0 else 0.0, duration
+        self.cut_audio(
+            self.audio_filepath,
+            audio_out_path,
+            -min_offset if min_offset < 0 else 0.0,
+            duration,
         )
+        audio_duration = self.ffmpeg_commands.get_audio_duration(audio_out_path)
         videos_out_path = []
-        for video_path, offset in tqdm(
-            zip(self.video_filepaths, self.offsets), total=len(self.offsets)
-        ):
+        for video_path, offset in zip(self.video_filepaths, self.offsets):
             out_path = join(
                 self.base_folder,
                 VIDEO_SYNC_FOLDER,

@@ -1,7 +1,6 @@
 import numpy as np
 from soundfile import read
 from scipy.signal import fftconvolve
-from tqdm import tqdm
 
 
 class Synchronizer:
@@ -23,7 +22,7 @@ class Synchronizer:
 
     def run(self):
         audio_offsets = []
-        for audio in tqdm(self.audios_to_sync, total=(len(self.audios_to_sync))):
+        for audio in self.audios_to_sync:
             offset = self.find_audio_offset(self.audio_reference, audio)
             audio_offsets.append(offset)
         return audio_offsets

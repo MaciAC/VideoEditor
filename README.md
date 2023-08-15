@@ -4,8 +4,8 @@ Project to develop a automatic multitake video editor. Based on the [MultiCam en
 
 TODOS:
 - Create new vertical video by changing takes among the multitake synched videos.
-- Use multiprocessing in FileManager.
+- ✅ Use multiprocessing in FileManager.
 - Use Object detection to choose vertical subtakes from videos.
 - Video effects/transitions
 - Allow to use an extra folder with gifs...
-- Allow to execute command with various parameters.
+- 🚧 Allow to execute command with various parameters.

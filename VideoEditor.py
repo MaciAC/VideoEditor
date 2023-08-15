@@ -13,7 +13,9 @@ class VideoEditor:
         self.file_manager.cut_videos_based_on_offsets(duration=10)
         self.file_manager.normalize_sync_videofiles()
 
-        self.multitake = MultiTake(self.file_manager.sync_audiopath, self.file_manager.normalized_videopaths)
+        self.multitake = MultiTake(
+            self.file_manager.sync_audiopath, self.file_manager.normalized_videopaths
+        )
         self.video_out_width = 1080
         self.video_out_heigth = 1920
         self.video_out_aspect_ratio = self.video_out_width / self.video_out_heigth
