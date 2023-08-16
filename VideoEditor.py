@@ -16,8 +16,9 @@ class VideoEditor:
         self.take_dur = take_dur
         self.file_manager = FileManager(self.base_folder, force_recreation)
         self.file_manager.create_normalized_audiofiles()
-        self.file_manager.create_audiovideo_synched(start=start, duration=video_duration)
+        self.file_manager.cut_videos_based_on_offsets(start=start, duration=video_duration)
         self.file_manager.normalize_sync_videofiles()
+        self.file_manager.add_padding_based_on_offsets(start=start)
 
         self.multitake = MultiTake(
             self.file_manager.sync_audiopath, self.file_manager.normalized_videopaths

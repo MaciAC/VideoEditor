@@ -2,7 +2,7 @@ from os.path import join, exists
 from os import listdir, mkdir
 import subprocess
 
-from FfmpegWraper import FFmpegWrapper, NORM_SR
+from FfmpegWraper import FFmpegWrapper, NORM_SR, TMP_BLACK_VIDEO
 from Synchronizer import Synchronizer
 
 AUDIO_FOLDER = "Audio"
@@ -10,6 +10,7 @@ VIDEO_FOLDER = "Videos"
 NORM_AUDIO_FOLDER = "NormAudio"
 NORM_VIDEO_FOLDER = "NormVideo"
 VIDEO_SYNC_FOLDER = "VideoSync"
+CMD_LIST = ".cmd.lst"
 
 
 def get_width_height_framerate(input_video):
@@ -66,7 +67,6 @@ class FileManager:
         return out_folder
 
     def run_commands_multiprocess(self, cmds: list[str], silent=False, n_processes=4):
-        CMD_LIST = ".cmd.lst"
         MULTIPROCESS_COMMAND = f"cat {CMD_LIST} | xargs -n1 -P{n_processes} sh -c"
         cmds = "'\n'".join(cmds)
         cmds_str = f"'{cmds}'\n"
@@ -129,7 +129,7 @@ class FileManager:
         self.run_commands_multiprocess(ffmpeg_commands)
         self.normalized_videopaths = out_paths
 
-    def create_audiovideo_synched(self, start: int, duration: int):
+    def cut_videos_based_on_offsets(self, start: int, duration: int):
         """
             cut audio from start to start + duration
             compute seconds where each video is present in relation to video and cut
@@ -151,39 +151,51 @@ class FileManager:
         )
         print("Cut audio...")
         self.run_commands_multiprocess([ffmpeg_command], n_processes=1)
-        audio_duration = self.ffmpeg_commands.get_audio_duration(audio_out_path)
+        self.audio_duration = self.ffmpeg_commands.get_audio_duration(audio_out_path)
         self.sync_audiopath = audio_out_path
 
         # manage videos
         videos_out_path = []
         ffmpeg_commands = []
-        for video_path, start_offset, finish_offset, resolution in zip(self.video_filepaths, self.start_offsets, self.finish_offsets, self.video_resolution):
+        for video_path, start_offset in zip(self.video_filepaths, self.start_offsets):
             out_path = join(
                 out_folder,
                 video_path.split("/")[-1].rsplit(".", 1)[0] + ".mp4",
             )
-            start_cut = start_offset + start
-            if start_cut >= 0.0:
-                print("Cut", video_path)
-                ffmpeg_commands.append(
-                    self.ffmpeg_commands.cut_video(
-                        video_path, out_path, start_cut, audio_duration
-                    )
+            start_cut = max(0.0, start_offset + start)
+            print("Cut", video_path)
+            ffmpeg_commands.append(
+                self.ffmpeg_commands.cut_video(
+                    video_path, out_path, start_cut, self.audio_duration
                 )
-            elif start_cut > -audio_duration:
+            )
+            videos_out_path.append(out_path)
+        print("Cut Video...")
+        print("\n".join(ffmpeg_commands))
+        self.run_commands_multiprocess(ffmpeg_commands, n_processes=1)
+        # 1 process to ensure that black video is created before the pad command is run...
+        # needs refactor, naybe move command run to ffmpegwrapper and run commands in batch, each batch a process: generate, cut, pad...
+        self.sync_videopaths = videos_out_path
+
+    def add_padding_based_on_offsets(self, start: int):
+        ffmpeg_commands = []
+        for video_path, start_offset, resolution in zip(self.sync_videopaths, self.start_offsets, self.video_resolution):
+            start_cut = start_offset + start
+            if start_cut > -self.audio_duration:
+                ffmpeg_commands.append(
+                    self.ffmpeg_commands.generate_black_video(TMP_BLACK_VIDEO, self.audio_duration, *resolution)
+                )
                 print("Pad", video_path)
                 ffmpeg_commands.append(
                     self.ffmpeg_commands.pad_video(
-                        video_path, out_path, -start_cut, audio_duration, *resolution
+                        video_path, video_path, -start_cut, self.audio_duration, *resolution
                     )
                 )
-            else:
-                print("video and audio not overlapped", video_path)
-            videos_out_path.append(out_path)
-        print("Cut/Pad Video...")
+        print("Pad Video...")
         print("\n".join(ffmpeg_commands))
-        self.run_commands_multiprocess(ffmpeg_commands)
-        self.sync_videopaths = videos_out_path
+        self.run_commands_multiprocess(ffmpeg_commands, n_processes=1)
+        # 1 process to ensure that black video is created before the pad command is run...
+        # needs refactor, naybe move command run to ffmpegwrapper and run commands in batch, each batch a process: generate, cut, pad...
 
     def video_audio_to_instavideo(
         self, input_audio_path, input_video_path, output_video_path
