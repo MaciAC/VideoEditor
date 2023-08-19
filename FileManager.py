@@ -16,44 +16,16 @@ from constants import (
 )
 
 
-def get_width_height_framerate(input_video):
-    # Run ffprobe to get resolution and frame rate
-    ffprobe_cmd = [
-        "ffprobe",
-        "-v",
-        "error",
-        "-select_streams",
-        "v:0",
-        "-show_entries",
-        "stream=width,height,r_frame_rate",
-        "-of",
-        "csv=s=x:p=0",
-        input_video,
-    ]
-    ffprobe_output = subprocess.check_output(ffprobe_cmd, text=True)
-    try:
-        width, height, frame_rate = ffprobe_output.strip().split("x")
-    except ValueError:
-        width, height, frame_rate, _ = ffprobe_output.strip().split("x")
-        print(width, height, frame_rate, _)
-    if "/" in frame_rate:
-        num, den = frame_rate.split("/")
-        frame_rate = float(num) / float(den)
-    else:
-        frame_rate = float(frame_rate)
-    return int(width), int(height), frame_rate
-
-
 class FileManager:
     def __init__(self, base_folder, force_recreation=False) -> None:
         self.force_recreation = force_recreation
         self.base_folder = base_folder
         self.audio_filepath = self._get_filepaths(AUDIO_FOLDER)[0]
         self.video_filepaths = sorted(self._get_filepaths(VIDEO_FOLDER))
-        self.video_resolution = [
-            get_width_height_framerate(p) for p in self.video_filepaths
-        ]
         self.ffmpeg_commands = FFmpegWrapper(self.force_recreation)
+        self.videos_resolution = [
+            self.ffmpeg_commands.get_width_height_framerate(p) for p in self.video_filepaths
+        ]
 
     def _get_filepaths(self, folder_name):
         return [
@@ -96,15 +68,12 @@ class FileManager:
         """
         out_folder = self.check_in_basefolder_and_create(NORM_VIDEO_FOLDER)
         out_paths = []
-        ffmpeg_commands = []
         for input_video_path in self.sync_videopaths:
             out_path = join(
                 out_folder,
                 input_video_path.split("/")[-1].rsplit(".", 1)[0] + ".mp4",
             )
-            ffmpeg_commands.append(
-                self.ffmpeg_commands.to_mp4(input_video_path, out_path)
-            )
+            self.ffmpeg_commands.to_mp4(input_video_path, out_path)
             out_paths.append(out_path)
         self.normalized_videopaths = out_paths
         n_files = len(out_paths)

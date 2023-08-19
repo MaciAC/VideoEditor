@@ -204,6 +204,33 @@ class FFmpegWrapper:
                 sleep(0.01)
                 continue
 
+    def get_width_height_framerate(self, input_video):
+        # Run ffprobe to get resolution and frame rate
+        ffprobe_cmd = [
+            "ffprobe",
+            "-v",
+            "error",
+            "-select_streams",
+            "v:0",
+            "-show_entries",
+            "stream=width,height,r_frame_rate",
+            "-of",
+            "csv=s=x:p=0",
+            input_video,
+        ]
+        ffprobe_output = subprocess.check_output(ffprobe_cmd, text=True)
+        try:
+            width, height, frame_rate = ffprobe_output.strip().split("x")
+        except ValueError:
+            width, height, frame_rate, _ = ffprobe_output.strip().split("x")
+            print(width, height, frame_rate, _)
+        if "/" in frame_rate:
+            num, den = frame_rate.split("/")
+            frame_rate = float(num) / float(den)
+        else:
+            frame_rate = float(frame_rate)
+        return int(width), int(height), frame_rate
+
 
 if __name__ == "__main__":
     pass
