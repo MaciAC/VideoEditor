@@ -2,7 +2,17 @@ from argparse import ArgumentParser, ArgumentTypeError
 from FileManager import FileManager
 from MultiTake import MultiTake
 from os.path import join
-from cv2 import VideoWriter, VideoWriter_fourcc, CAP_PROP_FPS, CAP_PROP_FRAME_WIDTH, CAP_PROP_FRAME_HEIGHT, CAP_PROP_POS_FRAMES, resize, destroyAllWindows
+from cv2 import (
+    VideoWriter,
+    VideoWriter_fourcc,
+    CAP_PROP_FPS,
+    CAP_PROP_FRAME_WIDTH,
+    CAP_PROP_FRAME_HEIGHT,
+    CAP_PROP_POS_FRAMES,
+    resize,
+    destroyAllWindows,
+)
+
 OUT_FOLDER = "Out"
 
 
@@ -51,7 +61,9 @@ class VideoEditor:
             return max_width, height_with_aspect_ratio
 
     def create_video(self):
-        out_folder = self.file_manager.check_folder_in_path_and_create(OUT_FOLDER, self.base_folder)
+        out_folder = self.file_manager.check_folder_in_path_and_create(
+            OUT_FOLDER, self.base_folder
+        )
         video_tmp_path = join(out_folder, "tmp.mp4")
         # Create an output video writer
         out = VideoWriter(
@@ -144,7 +156,11 @@ if __name__ == "__main__":
         dest="take_dur",
         help="Take change period in seconds",
     )
-    parser.add_argument("--test", action="store_true", help="Test execution won't delete temporary files")
+    parser.add_argument(
+        "--test",
+        action="store_true",
+        help="Test execution won't delete temporary files",
+    )
 
     args = parser.parse_args()
     if args.test:
