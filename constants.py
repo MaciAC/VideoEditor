@@ -9,6 +9,7 @@ TMP_BLACK_VIDEO = "black.mp4"
 CMD_LIST = ".cmd.lst"
 
 # folder names
+TMP_FOLDER = ".tmp"
 AUDIO_FOLDER = "Audio"
 VIDEO_FOLDER = "Videos"
 NORM_AUDIO_FOLDER = "NormAudio"

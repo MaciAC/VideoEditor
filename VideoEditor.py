@@ -34,6 +34,12 @@ class VideoEditor:
         self.video_out_heigth = 1920
         self.video_out_aspect_ratio = self.video_out_width / self.video_out_heigth
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        self.file_manager.remove_tmp_folder_and_contents()
+
     def calculate_largest_rect(self, max_width, max_height):
         # Calculate the width based on the height and aspect ratio
         width_with_aspect_ratio = int(max_height * self.video_out_aspect_ratio)
@@ -47,7 +53,7 @@ class VideoEditor:
             return max_width, height_with_aspect_ratio
 
     def create_video(self):
-        out_folder = self.file_manager.check_in_basefolder_and_create(OUT_FOLDER)
+        out_folder = self.file_manager.check_folder_in_path_and_create(OUT_FOLDER, self.base_folder)
         video_tmp_path = join(out_folder, "tmp.mp4")
         # Create an output video writer
         out = cv2.VideoWriter(
@@ -143,7 +149,7 @@ if __name__ == "__main__":
     parser.add_argument("-f", action="store_true", help="Force all files recreation")
 
     args = parser.parse_args()
-    video_editor = VideoEditor(
+    with VideoEditor(
         args.folder, args.f, args.start, args.duration, args.take_dur
-    )
-    video_editor.create_video()
+    ) as video_editor:
+        video_editor.create_video()

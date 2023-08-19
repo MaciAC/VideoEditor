@@ -1,13 +1,13 @@
 from os.path import join, exists
 from os import listdir, mkdir
-import subprocess
-
+from shutil import rmtree
 from FfmpegWraper import FFmpegWrapper
 from Synchronizer import Synchronizer
 
 from constants import (
     NORM_SR,
     TMP_BLACK_VIDEO,
+    TMP_FOLDER,
     AUDIO_FOLDER,
     VIDEO_FOLDER,
     NORM_AUDIO_FOLDER,
@@ -20,12 +20,20 @@ class FileManager:
     def __init__(self, base_folder, force_recreation=False) -> None:
         self.force_recreation = force_recreation
         self.base_folder = base_folder
+        self.temp_folder = self.check_folder_in_path_and_create(TMP_FOLDER, self.base_folder)
         self.audio_filepath = self._get_filepaths(AUDIO_FOLDER)[0]
         self.video_filepaths = sorted(self._get_filepaths(VIDEO_FOLDER))
         self.ffmpeg_commands = FFmpegWrapper(self.force_recreation)
         self.videos_resolution = [
             self.ffmpeg_commands.get_width_height_framerate(p) for p in self.video_filepaths
         ]
+
+    def remove_tmp_folder_and_contents(self):
+        try:
+            rmtree(self.temp_folder)
+            print(f"Folder '{self.temp_folder}' and its contents have been removed.")
+        except Exception as e:
+            print(f"An error occurred: {e}")
 
     def _get_filepaths(self, folder_name):
         return [
@@ -38,8 +46,8 @@ class FileManager:
         self.start_offsets = [o[0] / int(NORM_SR) for o in offsets]
         self.finish_offsets = [o[1] / int(NORM_SR) for o in offsets]
 
-    def check_in_basefolder_and_create(self, folder):
-        out_folder = join(self.base_folder, folder)
+    def check_folder_in_path_and_create(self, folder, path):
+        out_folder = join(path, folder)
         if not exists(out_folder):
             mkdir(out_folder)
         return out_folder
@@ -48,7 +56,7 @@ class FileManager:
         """
         Convert reference audio and reate normalized audio files from video for synch purposes
         """
-        out_folder = self.check_in_basefolder_and_create(NORM_AUDIO_FOLDER)
+        out_folder = self.check_folder_in_path_and_create(NORM_AUDIO_FOLDER, self.temp_folder)
         out_paths = []
         for input_video_path in self.video_filepaths + [self.audio_filepath]:
             out_path = join(
@@ -66,7 +74,7 @@ class FileManager:
         """
         Create copies of all videos normalized
         """
-        out_folder = self.check_in_basefolder_and_create(NORM_VIDEO_FOLDER)
+        out_folder = self.check_folder_in_path_and_create(NORM_VIDEO_FOLDER, self.temp_folder)
         out_paths = []
         for input_video_path in self.sync_videopaths:
             out_path = join(
@@ -88,7 +96,7 @@ class FileManager:
         """
         synchronizer = Synchronizer(self.normalized_audiopaths)
         self.set_offsets(synchronizer.run())
-        out_folder = self.check_in_basefolder_and_create(VIDEO_SYNC_FOLDER)
+        out_folder = self.check_folder_in_path_and_create(VIDEO_SYNC_FOLDER, self.temp_folder)
         # Manage audio crop and get final duration
         audio_out_path = join(
             out_folder,
