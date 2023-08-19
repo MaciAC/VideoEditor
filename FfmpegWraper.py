@@ -12,21 +12,19 @@ from constants import (
 
 
 class FFmpegWrapper:
-    FFMPEG_COMMAND = 'ffmpeg -loglevel error {input} {parameters} "{o_path}" {force}'
+    FFMPEG_COMMAND = 'ffmpeg -loglevel error {input} {parameters} "{o_path}" -y'
     FFMPEG_COMMAND_INSPECT = ["ffmpeg", "-i", ""]
 
-    def __init__(self, force_recreation: bool):
-        self.force_recreation = force_recreation
+    def __init__(self):
         self.current_command_batch = []
 
-    def create_command(self, parameters: list[str] = [], force=False):
+    def create_command(self, parameters: list[str] = []):
         input = '-i "{}"'.format(self.i_path) if self.i_path != "" else ""
         self.current_command_batch.append(
             self.FFMPEG_COMMAND.format(
                 input=input,
                 parameters=" ".join(parameters),
                 o_path=self.o_path,
-                force="-y" if (self.force_recreation or force) else "-n",
             )
         )
 
@@ -154,7 +152,7 @@ class FFmpegWrapper:
             "-t",
             "{:.1f}".format(duration),
         ]
-        self.create_command(parameters, force=True)
+        self.create_command(parameters)
 
     def join_video_and_audio(self, i_a_path: str, i_v_path: str, o_path: str) -> str:
         self.i_path = i_v_path
@@ -179,7 +177,7 @@ class FFmpegWrapper:
             "-ac",
             "2",  # Stereo
         ]
-        self.create_command(parameters, force=True)
+        self.create_command(parameters)
 
     def get_audio_duration(self, i_path):
         retry = True

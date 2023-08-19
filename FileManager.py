@@ -17,13 +17,12 @@ from constants import (
 
 
 class FileManager:
-    def __init__(self, base_folder, force_recreation=False) -> None:
-        self.force_recreation = force_recreation
+    def __init__(self, base_folder) -> None:
         self.base_folder = base_folder
         self.temp_folder = self.check_folder_in_path_and_create(TMP_FOLDER, self.base_folder)
         self.audio_filepath = self._get_filepaths(AUDIO_FOLDER)[0]
         self.video_filepaths = sorted(self._get_filepaths(VIDEO_FOLDER))
-        self.ffmpeg_commands = FFmpegWrapper(self.force_recreation)
+        self.ffmpeg_commands = FFmpegWrapper()
         self.videos_resolution = [
             self.ffmpeg_commands.get_width_height_framerate(p) for p in self.video_filepaths
         ]
