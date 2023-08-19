@@ -9,16 +9,23 @@ OUT_FOLDER = "Out"
 
 class VideoEditor:
     def __init__(
-        self, base_folder: str, force_recreation=False, start: int = 30, video_duration: int = 30, take_dur=3.0
+        self,
+        base_folder: str,
+        force_recreation=False,
+        start: int = 30,
+        video_duration: int = 30,
+        take_dur=3.0,
     ) -> None:
         self.base_folder = base_folder
         self.video_duration = video_duration
         self.take_dur = take_dur
         self.file_manager = FileManager(self.base_folder, force_recreation)
         self.file_manager.create_normalized_audiofiles()
-        self.file_manager.cut_videos_based_on_offsets(start=start, duration=video_duration)
+        self.file_manager.cut_videos_based_on_offsets(
+            start=start, duration=video_duration
+        )
         self.file_manager.normalize_sync_videofiles()
-        #self.file_manager.add_padding_based_on_offsets(start=start)
+        # self.file_manager.add_padding_based_on_offsets(start=start)
 
         self.multitake = MultiTake(
             self.file_manager.sync_audiopath, self.file_manager.normalized_videopaths
@@ -26,7 +33,6 @@ class VideoEditor:
         self.video_out_width = 1080
         self.video_out_heigth = 1920
         self.video_out_aspect_ratio = self.video_out_width / self.video_out_heigth
-
 
     def calculate_largest_rect(self, max_width, max_height):
         # Calculate the width based on the height and aspect ratio
@@ -65,15 +71,18 @@ class VideoEditor:
             # Set the starting frame
             cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
 
-
             # Extract and write frames for the segment
             for i in range(int(frame_rate * self.take_dur)):
                 ret, frame = cap.read()
                 if not ret:
                     break
-                max_width, max_height = self.calculate_largest_rect(frame_width, frame_height)
+                max_width, max_height = self.calculate_largest_rect(
+                    frame_width, frame_height
+                )
                 crop_frame = frame[0:max_width, 0:max_height]
-                resized_frame = cv2.resize(frame, (self.video_out_width, self.video_out_heigth))
+                resized_frame = cv2.resize(
+                    frame, (self.video_out_width, self.video_out_heigth)
+                )
                 out.write(resized_frame)
             cap.release()
             idx += self.take_dur
@@ -92,6 +101,7 @@ def check_positive(value):
     if ivalue < 0:
         raise ArgumentTypeError("Has to be 0 or positive" % value)
     return ivalue
+
 
 if __name__ == "__main__":
     parser = ArgumentParser()
@@ -132,8 +142,8 @@ if __name__ == "__main__":
     )
     parser.add_argument("-f", action="store_true", help="Force all files recreation")
 
-
-
     args = parser.parse_args()
-    video_editor = VideoEditor(args.folder, args.f, args.start, args.duration, args.take_dur)
+    video_editor = VideoEditor(
+        args.folder, args.f, args.start, args.duration, args.take_dur
+    )
     video_editor.create_video()

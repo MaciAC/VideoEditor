@@ -5,13 +5,15 @@ import subprocess
 from FfmpegWraper import FFmpegWrapper
 from Synchronizer import Synchronizer
 
-from constants import (NORM_SR,
-                       TMP_BLACK_VIDEO,
-                       AUDIO_FOLDER,
-                       VIDEO_FOLDER,
-                       NORM_AUDIO_FOLDER,
-                       NORM_VIDEO_FOLDER,
-                       VIDEO_SYNC_FOLDER,)
+from constants import (
+    NORM_SR,
+    TMP_BLACK_VIDEO,
+    AUDIO_FOLDER,
+    VIDEO_FOLDER,
+    NORM_AUDIO_FOLDER,
+    NORM_VIDEO_FOLDER,
+    VIDEO_SYNC_FOLDER,
+)
 
 
 def get_width_height_framerate(input_video):
@@ -26,7 +28,7 @@ def get_width_height_framerate(input_video):
         "stream=width,height,r_frame_rate",
         "-of",
         "csv=s=x:p=0",
-        input_video
+        input_video,
     ]
     ffprobe_output = subprocess.check_output(ffprobe_cmd, text=True)
     try:
@@ -34,12 +36,13 @@ def get_width_height_framerate(input_video):
     except ValueError:
         width, height, frame_rate, _ = ffprobe_output.strip().split("x")
         print(width, height, frame_rate, _)
-    if '/' in frame_rate:
-        num, den = frame_rate.split('/')
-        frame_rate = float(num)/float(den)
+    if "/" in frame_rate:
+        num, den = frame_rate.split("/")
+        frame_rate = float(num) / float(den)
     else:
         frame_rate = float(frame_rate)
     return int(width), int(height), frame_rate
+
 
 class FileManager:
     def __init__(self, base_folder, force_recreation=False) -> None:
@@ -47,7 +50,9 @@ class FileManager:
         self.base_folder = base_folder
         self.audio_filepath = self._get_filepaths(AUDIO_FOLDER)[0]
         self.video_filepaths = sorted(self._get_filepaths(VIDEO_FOLDER))
-        self.video_resolution = [get_width_height_framerate(p) for p in self.video_filepaths]
+        self.video_resolution = [
+            get_width_height_framerate(p) for p in self.video_filepaths
+        ]
         self.ffmpeg_commands = FFmpegWrapper(self.force_recreation)
 
     def _get_filepaths(self, folder_name):
@@ -108,8 +113,8 @@ class FileManager:
 
     def cut_videos_based_on_offsets(self, start: int, duration: int):
         """
-            cut audio from start to start + duration
-            compute seconds where each video is present in relation to video and cut
+        cut audio from start to start + duration
+        compute seconds where each video is present in relation to video and cut
 
         """
         synchronizer = Synchronizer(self.normalized_audiopaths)

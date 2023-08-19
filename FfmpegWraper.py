@@ -2,17 +2,17 @@ import subprocess
 import re
 from time import sleep
 
-from constants import (NORM_AUDIO_CODEC,
-                       NORM_SR,
-                       NORM_VIDEO_CODEC,
-                       NORM_FPS,
-                       TMP_BLACK_VIDEO,
-                       CMD_LIST)
+from constants import (
+    NORM_AUDIO_CODEC,
+    NORM_SR,
+    NORM_VIDEO_CODEC,
+    NORM_FPS,
+    CMD_LIST,
+)
+
 
 class FFmpegWrapper:
-    FFMPEG_COMMAND = (
-        'ffmpeg -loglevel error {input} {parameters} "{o_path}" {force}'
-    )
+    FFMPEG_COMMAND = 'ffmpeg -loglevel error {input} {parameters} "{o_path}" {force}'
     FFMPEG_COMMAND_INSPECT = ["ffmpeg", "-i", ""]
 
     def __init__(self, force_recreation: bool):
@@ -20,14 +20,13 @@ class FFmpegWrapper:
         self.current_command_batch = []
 
     def create_command(self, parameters: list[str] = [], force=False):
-
         input = '-i "{}"'.format(self.i_path) if self.i_path != "" else ""
         self.current_command_batch.append(
             self.FFMPEG_COMMAND.format(
-            input=input,
-            parameters=" ".join(parameters),
-            o_path=self.o_path,
-            force="-y" if (self.force_recreation or force) else "-n",
+                input=input,
+                parameters=" ".join(parameters),
+                o_path=self.o_path,
+                force="-y" if (self.force_recreation or force) else "-n",
             )
         )
 
@@ -144,11 +143,16 @@ class FFmpegWrapper:
         self.i_path = ""
         self.o_path = o_path
         parameters = [
-            "-f", "lavfi",
-            "-i", f"color=black:s={width}x{height}:r={frame_rate}",
-            "-f", "lavfi",
-            "-i", "anullsrc",
-            "-t", "{:.1f}".format(duration),
+            "-f",
+            "lavfi",
+            "-i",
+            f"color=black:s={width}x{height}:r={frame_rate}",
+            "-f",
+            "lavfi",
+            "-i",
+            "anullsrc",
+            "-t",
+            "{:.1f}".format(duration),
         ]
         self.create_command(parameters, force=True)
 
