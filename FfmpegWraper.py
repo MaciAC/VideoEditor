@@ -2,13 +2,11 @@ import subprocess
 import re
 from time import sleep
 
-NORM_SR = "8000"
-NORM_AUDIO_CODEC = "pcm_s16le"
-NORM_FPS = "30"
-NORM_VIDEO_CODEC = "libx264"
-TMP_BLACK_VIDEO = "black.mp4"
-
-
+from constants import (NORM_AUDIO_CODEC,
+                       NORM_SR,
+                       NORM_VIDEO_CODEC,
+                       NORM_FPS,
+                       TMP_BLACK_VIDEO,)
 
 class FFmpegWrapper:
     FFMPEG_COMMAND = (

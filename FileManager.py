@@ -2,15 +2,17 @@ from os.path import join, exists
 from os import listdir, mkdir
 import subprocess
 
-from FfmpegWraper import FFmpegWrapper, NORM_SR, TMP_BLACK_VIDEO
+from FfmpegWraper import FFmpegWrapper
 from Synchronizer import Synchronizer
 
-AUDIO_FOLDER = "Audio"
-VIDEO_FOLDER = "Videos"
-NORM_AUDIO_FOLDER = "NormAudio"
-NORM_VIDEO_FOLDER = "NormVideo"
-VIDEO_SYNC_FOLDER = "VideoSync"
-CMD_LIST = ".cmd.lst"
+from constants import (NORM_SR,
+                       TMP_BLACK_VIDEO,
+                       AUDIO_FOLDER,
+                       VIDEO_FOLDER,
+                       CMD_LIST,
+                       NORM_AUDIO_FOLDER,
+                       NORM_VIDEO_FOLDER,
+                       VIDEO_SYNC_FOLDER,)
 
 
 def get_width_height_framerate(input_video):
