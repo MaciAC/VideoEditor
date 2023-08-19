@@ -96,17 +96,7 @@ class FileManager:
         print(f"Creating {n_files} normalized sync videofiles...")
         self.ffmpeg_commands.run_current_batch(n_processes=n_files)
 
-    def cut_videos_based_on_offsets(self, start: int, duration: int):
-        """
-        cut audio from start to start + duration
-        compute seconds where each video is present in relation to video and cut
-
-        """
-        synchronizer = Synchronizer(self.normalized_audiopaths)
-        self.set_offsets(synchronizer.run())
-        out_folder = self.check_folder_in_path_and_create(
-            VIDEO_SYNC_FOLDER, self.temp_folder
-        )
+    def cut_audio_based_on_offsets(self, out_folder, start: int, duration: int):
         # Manage audio crop and get final duration
         audio_out_path = join(
             out_folder,
@@ -123,7 +113,19 @@ class FileManager:
         self.ffmpeg_commands.run_current_batch(n_processes=1)
         self.audio_duration = self.ffmpeg_commands.get_audio_duration(audio_out_path)
 
-        # manage videos
+    def cut_videos_based_on_offsets(self, start: int, duration: int):
+        """
+        cut audio from start to start + duration
+        compute seconds where each video is present in relation to video and cut
+
+        """
+        synchronizer = Synchronizer(self.normalized_audiopaths)
+        self.set_offsets(synchronizer.run())
+        out_folder = self.check_folder_in_path_and_create(
+            VIDEO_SYNC_FOLDER, self.temp_folder
+        )
+        self.cut_audio_based_on_offsets(out_folder, start, duration)
+
         videos_out_path = []
         for video_path, start_offset in zip(self.video_filepaths, self.start_offsets):
             out_path = join(
@@ -140,33 +142,11 @@ class FileManager:
         print(f"Cutting {n_files} videofiles...")
         self.ffmpeg_commands.run_current_batch(n_processes=n_files)
         self.sync_videopaths = videos_out_path
+        return self.start_offsets, self.finish_offsets
 
     def create_black_image(self, output_path, width, height):
-        breakpoint()
         black_image = zeros((height, width, 3), dtype=uint8)
         imwrite(output_path, black_image)
-
-    def add_padding_based_on_offsets(self, start: int):
-        out_folder = self.check_folder_in_path_and_create(
-            BLACK_PNG_FOLDER, self.temp_folder
-        )
-        for video_path, start_offset, resolution in zip(self.sync_videopaths, self.start_offsets, self.videos_resolution):
-            widht, height, frame_rate = resolution
-            out_path = join(
-                out_folder,
-                video_path.split("/")[-1].rsplit(".", 1)[0] + ".png",
-            )
-            start_cut = start_offset + start
-            if start_cut > -self.audio_duration:
-                self.create_black_image(out_path, widht, height)
-        #         print("Pad", video_path)
-        #             self.ffmpeg_commands.pad_video(
-        #                 video_path, video_path, -start_cut, self.audio_duration, *resolution
-        #             )
-        # print("Pad Video...")
-        # self.ffmpeg_commands.run_current_batch(n_processes=1)
-        # 1 process to ensure that black video is created before the pad command is run...
-        # needs refactor, naybe move command run to ffmpegwrapper and run commands in batch, each batch a process: generate, cut, pad...
 
     def video_audio_to_instavideo(
         self, input_audio_path, input_video_path, output_video_path

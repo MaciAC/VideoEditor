@@ -8,6 +8,8 @@ from constants import (
     NORM_VIDEO_CODEC,
     NORM_FPS,
     CMD_LIST,
+    VIDEO_SYNC_FOLDER,
+    BLACK_PNG_FOLDER,
 )
 
 
@@ -20,13 +22,12 @@ class FFmpegWrapper:
 
     def create_command(self, parameters: list[str] = []):
         input = '-i "{}"'.format(self.i_path) if self.i_path != "" else ""
-        self.current_command_batch.append(
-            self.FFMPEG_COMMAND.format(
-                input=input,
-                parameters=" ".join(parameters),
-                o_path=self.o_path,
-            )
-        )
+        command = self.FFMPEG_COMMAND.format(
+                    input=input,
+                    parameters=" ".join(parameters),
+                    o_path=self.o_path,
+                )
+        self.current_command_batch.append(command)
 
     def run_current_batch(self, n_processes=1):
         MULTIPROCESS_COMMAND = f"cat {CMD_LIST} | xargs -n1 -P{n_processes} sh -c"
@@ -112,30 +113,6 @@ class FFmpegWrapper:
             "copy",  # Copy the audio codec
         ]
         self.create_command(parameters)
-
-    def pad_video(
-        self, i_path: str, o_path: str, start_pad_seconds: int, duration: int, width, height, frame_rate,
-    ) -> str:
-        """
-            pad video assumes a black video is created.
-            actually concats black video with i_path's video
-            ffmpeg concat needs sequence of videos in a file
-        """
-        # create file with sequence command
-        sequence = "\n".join([
-            f"file {TMP_BLACK_VIDEO}", "outpoint {:.2f}".format(start_pad_seconds),
-            f"file \"{i_path}\"", "outpoint {:.2f}".format(duration-start_pad_seconds),
-        ])
-        self.i_path = ""
-        self.o_path = o_path
-        parameters = [
-            "-f", "concat",
-            "-safe", "0",
-            "-i", "txt.txt",
-            "-c:v", "qtrle",
-            "-c:a", "copy"
-        ]
-        return f"echo '{sequence}'> txt.txt && " + self.create_command(parameters)
 
     def join_video_and_audio(self, i_a_path: str, i_v_path: str, o_path: str) -> str:
         self.i_path = i_v_path

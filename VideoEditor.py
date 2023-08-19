@@ -2,6 +2,7 @@ from argparse import ArgumentParser, ArgumentTypeError
 from FileManager import FileManager
 from MultiTake import MultiTake
 from os.path import join
+from random import choice
 from cv2 import (
     VideoWriter,
     VideoWriter_fourcc,
@@ -13,8 +14,7 @@ from cv2 import (
     destroyAllWindows,
 )
 
-OUT_FOLDER = "Out"
-
+from constants import OUT_FOLDER, NORM_FPS
 
 class VideoEditor:
     def __init__(
@@ -24,23 +24,24 @@ class VideoEditor:
         video_duration: int = 30,
         take_dur=3.0,
     ) -> None:
+        self.video_out_fps = int(NORM_FPS)
+        self.video_out_width = 1080
+        self.video_out_heigth = 1920
+        self.video_out_aspect_ratio = self.video_out_width / self.video_out_heigth
+
+        self.start = start
         self.base_folder = base_folder
         self.video_duration = video_duration
         self.take_dur = take_dur
         self.file_manager = FileManager(self.base_folder)
         self.file_manager.create_normalized_audiofiles()
-        self.file_manager.cut_videos_based_on_offsets(
+        self.start_offsets, self.finish_offsets = self.file_manager.cut_videos_based_on_offsets(
             start=start, duration=video_duration
         )
         self.file_manager.normalize_sync_videofiles()
-        self.file_manager.add_padding_based_on_offsets(start=start)
-
         self.multitake = MultiTake(
             self.file_manager.sync_audiopath, self.file_manager.normalized_videopaths
         )
-        self.video_out_width = 1080
-        self.video_out_heigth = 1920
-        self.video_out_aspect_ratio = self.video_out_width / self.video_out_heigth
 
     def __enter__(self):
         return self
@@ -60,6 +61,14 @@ class VideoEditor:
             height_with_aspect_ratio = int(max_width / self.video_out_aspect_ratio)
             return max_width, height_with_aspect_ratio
 
+    def get_candidate_video_idxs(self, curr_time):
+        idxs = []
+        curr_time += self.start
+        for idx, (start_offset, finish_offset) in enumerate(zip(self.start_offsets, self.finish_offsets)):
+            if curr_time + start_offset >= 0.0:
+                idxs.append(idx)
+        return idxs
+
     def create_video(self):
         out_folder = self.file_manager.check_folder_in_path_and_create(
             OUT_FOLDER, self.base_folder
@@ -73,17 +82,21 @@ class VideoEditor:
             (self.video_out_width, self.video_out_heigth),
         )
 
-        idx = 0
-        while idx < self.video_duration:
-            print("Processing segment", idx)
-            video_idx = int(idx // self.take_dur) % len(self.multitake.video_paths)
+        time_frame = 0
+        while time_frame < self.video_duration:
+            print("Processing segment", time_frame)
+            candidate_idxs = self.get_candidate_video_idxs(time_frame)
+            print(candidate_idxs)
+            video_idx = choice(candidate_idxs)
             cap = self.multitake.get_video_clip(video_idx)
             # get info from current video in use
             frame_rate = int(cap.get(CAP_PROP_FPS))
             frame_width = int(cap.get(CAP_PROP_FRAME_WIDTH))
             frame_height = int(cap.get(CAP_PROP_FRAME_HEIGHT))
+            start_offset = self.start_offsets[video_idx]
             # compute starting frame index for the current segment
-            start_frame = int(frame_rate * idx)
+            start_frame = int(frame_rate * (time_frame+(
+                start_offset if start_offset < 0.0 else 0.0)))
             # Set the starting frame
             cap.set(CAP_PROP_POS_FRAMES, start_frame)
 
@@ -101,14 +114,13 @@ class VideoEditor:
                 )
                 out.write(resized_frame)
             cap.release()
-            idx += self.take_dur
-
+            time_frame += self.take_dur
         # Release output video writer
         out.release()
         destroyAllWindows()
-        video_out_path = join(out_folder, "out.mp4")
+        final_video_out_path = join(out_folder, "out.mp4")
         self.file_manager.video_audio_to_instavideo(
-            self.multitake.audio_path, video_tmp_path, video_out_path
+            self.multitake.audio_path, video_tmp_path, final_video_out_path
         )
 
 
