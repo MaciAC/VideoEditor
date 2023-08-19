@@ -33,7 +33,7 @@ class VideoEditor:
             start=start, duration=video_duration
         )
         self.file_manager.normalize_sync_videofiles()
-        # self.file_manager.add_padding_based_on_offsets(start=start)
+        self.file_manager.add_padding_based_on_offsets(start=start)
 
         self.multitake = MultiTake(
             self.file_manager.sync_audiopath, self.file_manager.normalized_videopaths
@@ -78,11 +78,11 @@ class VideoEditor:
             print("Processing segment", idx)
             video_idx = int(idx // self.take_dur) % len(self.multitake.video_paths)
             cap = self.multitake.get_video_clip(video_idx)
-            # get infor from current video in use
+            # get info from current video in use
             frame_rate = int(cap.get(CAP_PROP_FPS))
             frame_width = int(cap.get(CAP_PROP_FRAME_WIDTH))
             frame_height = int(cap.get(CAP_PROP_FRAME_HEIGHT))
-            # Calculate starting frame index for the current segment
+            # compute starting frame index for the current segment
             start_frame = int(frame_rate * idx)
             # Set the starting frame
             cap.set(CAP_PROP_POS_FRAMES, start_frame)

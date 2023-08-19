@@ -1,12 +1,14 @@
 from os.path import join, exists
 from os import listdir, mkdir
 from shutil import rmtree
+from cv2 import imwrite
+from numpy import uint8, zeros
 from FfmpegWraper import FFmpegWrapper
 from Synchronizer import Synchronizer
 
 from constants import (
     NORM_SR,
-    TMP_BLACK_VIDEO,
+    BLACK_PNG_FOLDER,
     TMP_FOLDER,
     AUDIO_FOLDER,
     VIDEO_FOLDER,
@@ -139,22 +141,32 @@ class FileManager:
         self.ffmpeg_commands.run_current_batch(n_processes=n_files)
         self.sync_videopaths = videos_out_path
 
-    # def add_padding_based_on_offsets(self, start: int):
-    #     ffmpeg_commands = []
-    #     for video_path, start_offset, resolution in zip(self.sync_videopaths, self.start_offsets, self.video_resolution):
-    #         start_cut = start_offset + start
-    #         if start_cut > -self.audio_duration:
-    #             ffmpeg_commands.append(
-    #                 self.ffmpeg_commands.generate_black_video(TMP_BLACK_VIDEO, self.audio_duration, *resolution)
-    #             )
-    #             print("Pad", video_path)
-    #                 self.ffmpeg_commands.pad_video(
-    #                     video_path, video_path, -start_cut, self.audio_duration, *resolution
-    #                 )
-    #     print("Pad Video...")
-    #     self.ffmpeg_commands.run_current_batch(n_processes=1)
-    #     # 1 process to ensure that black video is created before the pad command is run...
-    #     # needs refactor, naybe move command run to ffmpegwrapper and run commands in batch, each batch a process: generate, cut, pad...
+    def create_black_image(self, output_path, width, height):
+        breakpoint()
+        black_image = zeros((height, width, 3), dtype=uint8)
+        imwrite(output_path, black_image)
+
+    def add_padding_based_on_offsets(self, start: int):
+        out_folder = self.check_folder_in_path_and_create(
+            BLACK_PNG_FOLDER, self.temp_folder
+        )
+        for video_path, start_offset, resolution in zip(self.sync_videopaths, self.start_offsets, self.videos_resolution):
+            widht, height, frame_rate = resolution
+            out_path = join(
+                out_folder,
+                video_path.split("/")[-1].rsplit(".", 1)[0] + ".png",
+            )
+            start_cut = start_offset + start
+            if start_cut > -self.audio_duration:
+                self.create_black_image(out_path, widht, height)
+        #         print("Pad", video_path)
+        #             self.ffmpeg_commands.pad_video(
+        #                 video_path, video_path, -start_cut, self.audio_duration, *resolution
+        #             )
+        # print("Pad Video...")
+        # self.ffmpeg_commands.run_current_batch(n_processes=1)
+        # 1 process to ensure that black video is created before the pad command is run...
+        # needs refactor, naybe move command run to ffmpegwrapper and run commands in batch, each batch a process: generate, cut, pad...
 
     def video_audio_to_instavideo(
         self, input_audio_path, input_video_path, output_video_path

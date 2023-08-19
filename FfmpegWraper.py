@@ -113,46 +113,29 @@ class FFmpegWrapper:
         ]
         self.create_command(parameters)
 
-    # def pad_video(
-    #     self, i_path: str, o_path: str, start_pad_seconds: int, duration: int, width, height, frame_rate,
-    # ) -> str:
-    #     """
-    #         pad video assumes a black video is created.
-    #         actually concats black video with i_path's video
-    #         ffmpeg concat needs sequence of videos in a file
-    #     """
-    #     # create file with sequence command
-    #     sequence = "\n".join([
-    #         f"file {TMP_BLACK_VIDEO}", "outpoint {:.2f}".format(start_pad_seconds),
-    #         f"file \"{i_path}\"", "outpoint {:.2f}".format(duration-start_pad_seconds),
-    #     ])
-    #     self.i_path = ""
-    #     self.o_path = o_path
-    #     parameters = [
-    #         "-f", "concat",
-    #         "-safe", "0",
-    #         "-i", "txt.txt",
-    #         "-c:v", "qtrle",
-    #         "-c:a", "copy"
-    #     ]
-    #     return f"echo '{sequence}'> txt.txt && " + self.create_command(parameters)
-
-    def generate_black_video(self, o_path: str, duration, width, height, frame_rate):
+    def pad_video(
+        self, i_path: str, o_path: str, start_pad_seconds: int, duration: int, width, height, frame_rate,
+    ) -> str:
+        """
+            pad video assumes a black video is created.
+            actually concats black video with i_path's video
+            ffmpeg concat needs sequence of videos in a file
+        """
+        # create file with sequence command
+        sequence = "\n".join([
+            f"file {TMP_BLACK_VIDEO}", "outpoint {:.2f}".format(start_pad_seconds),
+            f"file \"{i_path}\"", "outpoint {:.2f}".format(duration-start_pad_seconds),
+        ])
         self.i_path = ""
         self.o_path = o_path
         parameters = [
-            "-f",
-            "lavfi",
-            "-i",
-            f"color=black:s={width}x{height}:r={frame_rate}",
-            "-f",
-            "lavfi",
-            "-i",
-            "anullsrc",
-            "-t",
-            "{:.1f}".format(duration),
+            "-f", "concat",
+            "-safe", "0",
+            "-i", "txt.txt",
+            "-c:v", "qtrle",
+            "-c:a", "copy"
         ]
-        self.create_command(parameters)
+        return f"echo '{sequence}'> txt.txt && " + self.create_command(parameters)
 
     def join_video_and_audio(self, i_a_path: str, i_v_path: str, o_path: str) -> str:
         self.i_path = i_v_path
