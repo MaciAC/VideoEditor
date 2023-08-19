@@ -6,7 +6,8 @@ from constants import (NORM_AUDIO_CODEC,
                        NORM_SR,
                        NORM_VIDEO_CODEC,
                        NORM_FPS,
-                       TMP_BLACK_VIDEO,)
+                       TMP_BLACK_VIDEO,
+                       CMD_LIST)
 
 class FFmpegWrapper:
     FFMPEG_COMMAND = (
@@ -16,16 +17,42 @@ class FFmpegWrapper:
 
     def __init__(self, force_recreation: bool):
         self.force_recreation = force_recreation
+        self.current_command_batch = []
 
     def create_command(self, parameters: list[str] = [], force=False):
 
         input = '-i "{}"'.format(self.i_path) if self.i_path != "" else ""
-        return self.FFMPEG_COMMAND.format(
+        self.current_command_batch.append(
+            self.FFMPEG_COMMAND.format(
             input=input,
             parameters=" ".join(parameters),
             o_path=self.o_path,
             force="-y" if (self.force_recreation or force) else "-n",
+            )
         )
+
+    def run_current_batch(self, n_processes=1):
+        MULTIPROCESS_COMMAND = f"cat {CMD_LIST} | xargs -n1 -P{n_processes} sh -c"
+        cmds = "'\n'".join(self.current_command_batch)
+        cmds_str = f"'{cmds}'\n"
+        with open(CMD_LIST, "w") as f:
+            f.write(cmds_str)
+        process = subprocess.Popen(
+            [MULTIPROCESS_COMMAND],
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        # Wait for the subprocess to complete
+        process.wait()
+
+        # Check the return code to determine if the subprocess completed successfully
+        return_code = process.returncode
+        if return_code == 0:
+            print("Completed!")
+            self.current_command_batch = []
+        else:
+            print(f"Subprocess completed with an error (return code: {return_code})")
 
     def to_wav(self, i_path: str, o_path: str) -> str:
         self.i_path = i_path
@@ -39,7 +66,7 @@ class FFmpegWrapper:
             "-ac",
             "1",
         ]
-        return self.create_command(parameters)
+        self.create_command(parameters)
 
     def to_mp4(self, i_path: str, o_path: str) -> str:
         self.i_path = i_path
@@ -51,7 +78,7 @@ class FFmpegWrapper:
             "-r",
             NORM_FPS,
         ]
-        return self.create_command(parameters)
+        self.create_command(parameters)
 
     def cut_audio(
         self, i_path: str, o_path: str, start_offset_seconds: int, duration: int
@@ -70,7 +97,7 @@ class FFmpegWrapper:
             "-ac",
             "2",
         ]
-        return self.create_command(parameters)
+        self.create_command(parameters)
 
     def cut_video(
         self, i_path: str, o_path: str, start_offset_seconds: int, duration: int
@@ -87,31 +114,31 @@ class FFmpegWrapper:
             "-c:a",
             "copy",  # Copy the audio codec
         ]
-        return self.create_command(parameters)
+        self.create_command(parameters)
 
-    def pad_video(
-        self, i_path: str, o_path: str, start_pad_seconds: int, duration: int, width, height, frame_rate,
-    ) -> str:
-        """
-            pad video assumes a black video is created.
-            actually concats black video with i_path's video
-            ffmpeg concat needs sequence of videos in a file
-        """
-        # create file with sequence command
-        sequence = "\n".join([
-            f"file {TMP_BLACK_VIDEO}", "outpoint {:.2f}".format(start_pad_seconds),
-            f"file \"{i_path}\"", "outpoint {:.2f}".format(duration-start_pad_seconds),
-        ])
-        self.i_path = ""
-        self.o_path = o_path
-        parameters = [
-            "-f", "concat",
-            "-safe", "0",
-            "-i", "txt.txt",
-            "-c:v", "qtrle",
-            "-c:a", "copy"
-        ]
-        return f"echo '{sequence}'> txt.txt && " + self.create_command(parameters)
+    # def pad_video(
+    #     self, i_path: str, o_path: str, start_pad_seconds: int, duration: int, width, height, frame_rate,
+    # ) -> str:
+    #     """
+    #         pad video assumes a black video is created.
+    #         actually concats black video with i_path's video
+    #         ffmpeg concat needs sequence of videos in a file
+    #     """
+    #     # create file with sequence command
+    #     sequence = "\n".join([
+    #         f"file {TMP_BLACK_VIDEO}", "outpoint {:.2f}".format(start_pad_seconds),
+    #         f"file \"{i_path}\"", "outpoint {:.2f}".format(duration-start_pad_seconds),
+    #     ])
+    #     self.i_path = ""
+    #     self.o_path = o_path
+    #     parameters = [
+    #         "-f", "concat",
+    #         "-safe", "0",
+    #         "-i", "txt.txt",
+    #         "-c:v", "qtrle",
+    #         "-c:a", "copy"
+    #     ]
+    #     return f"echo '{sequence}'> txt.txt && " + self.create_command(parameters)
 
     def generate_black_video(self, o_path: str, duration, width, height, frame_rate):
         self.i_path = ""
@@ -123,7 +150,7 @@ class FFmpegWrapper:
             "-i", "anullsrc",
             "-t", "{:.1f}".format(duration),
         ]
-        return self.create_command(parameters, force=True)
+        self.create_command(parameters, force=True)
 
     def join_video_and_audio(self, i_a_path: str, i_v_path: str, o_path: str) -> str:
         self.i_path = i_v_path
@@ -148,7 +175,7 @@ class FFmpegWrapper:
             "-ac",
             "2",  # Stereo
         ]
-        return self.create_command(parameters, force=True)
+        self.create_command(parameters, force=True)
 
     def get_audio_duration(self, i_path):
         retry = True
