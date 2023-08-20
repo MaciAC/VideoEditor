@@ -137,7 +137,7 @@ class FileManager:
             )
             start_cut = max(0.0, start_offset + start)
             self.ffmpeg_commands.cut_video(
-                video_path, out_path, start_cut, self.audio_duration
+                video_path, out_path, start_cut, duration
             )
             videos_out_path.append(out_path)
         n_files = len(videos_out_path)
