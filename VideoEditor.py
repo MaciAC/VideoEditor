@@ -100,18 +100,17 @@ class VideoEditor:
                 start_offset if (start_offset < 0.0 and -start_offset > self.start ) else 0.0)))
             # Set the starting frame
             cap.set(CAP_PROP_POS_FRAMES, start_frame)
-
+            max_width, max_height = self.calculate_largest_rect(
+                    frame_width, frame_height
+                )
             # Extract and write frames for the segment
             for i in range(int(frame_rate * self.take_dur)):
                 ret, frame = cap.read()
                 if not ret:
                     break
-                max_width, max_height = self.calculate_largest_rect(
-                    frame_width, frame_height
-                )
-                crop_frame = frame[0:max_width, 0:max_height]
+                crop_frame = frame[0:max_height, 0:max_width]
                 resized_frame = resize(
-                    frame, (self.video_out_width, self.video_out_heigth)
+                    crop_frame, (self.video_out_width, self.video_out_heigth)
                 )
                 out.write(resized_frame)
             cap.release()
