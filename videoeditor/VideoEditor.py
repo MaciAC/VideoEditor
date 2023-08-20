@@ -59,7 +59,7 @@ class VideoEditor:
             height_with_aspect_ratio = int(max_width / self.video_out_aspect_ratio)
             return max_width, height_with_aspect_ratio
 
-    def get_candidate_video_idxs(self, curr_frame):
+    def get_candidate_video_idxs(self, curr_frame, finish_frame):
         idxs = []
         curr_time = curr_frame / self.video_out_fps
         curr_time += self.start
@@ -69,7 +69,7 @@ class VideoEditor:
         ):
             if (
                 curr_time + start_offset >= 0.0
-                and audio_total_duration - finish_offset - curr_time + self.take_dur >= 0.0
+                and audio_total_duration - finish_offset - curr_time + finish_frame >= 0.0
             ):
                 idxs.append(idx)
         return idxs
@@ -96,7 +96,7 @@ class VideoEditor:
                 if cap:
                     cap.release()
                 info(f"Processing segment {frame_idx}")
-                candidate_idxs = self.get_candidate_video_idxs(frame_idx)
+                candidate_idxs = self.get_candidate_video_idxs(frame_idx, frame_idx + 10)
                 info(candidate_idxs)
                 video_idx = choice(candidate_idxs)
                 cap = self.multitake.get_video_clip(video_idx)
@@ -171,15 +171,6 @@ if __name__ == "__main__":
         help="Duration of the resulting video in seconds",
     )
     parser.add_argument(
-        "--take_dur",
-        action="store",
-        type=check_positive,
-        required=False,
-        default=3.0,
-        dest="take_dur",
-        help="Take change period in seconds",
-    )
-    parser.add_argument(
         "--test",
         "-t",
         dest="test",
@@ -206,10 +197,10 @@ if __name__ == "__main__":
             format=logging_format,
         )
     if args.test:
-        video_editor = VideoEditor(args.folder, args.start, args.duration, args.take_dur)
+        video_editor = VideoEditor(args.folder, args.start, args.duration)
         video_editor.create_video()
     else:
         with VideoEditor(
-            args.folder, args.start, args.duration, args.take_dur
+            args.folder, args.start, args.duration
         ) as video_editor:
             video_editor.create_video()
