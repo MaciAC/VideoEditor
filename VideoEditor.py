@@ -16,6 +16,7 @@ from cv2 import (
 
 from constants import OUT_FOLDER, TMP_FOLDER, NORM_FPS
 
+
 class VideoEditor:
     def __init__(
         self,
@@ -35,7 +36,10 @@ class VideoEditor:
         self.take_dur = take_dur
         self.file_manager = FileManager(self.base_folder)
         self.file_manager.create_normalized_audiofiles()
-        self.start_offsets, self.finish_offsets = self.file_manager.cut_videos_based_on_offsets(
+        (
+            self.start_offsets,
+            self.finish_offsets,
+        ) = self.file_manager.cut_videos_based_on_offsets(
             start=start, duration=video_duration
         )
         self.file_manager.normalize_sync_videofiles()
@@ -65,8 +69,14 @@ class VideoEditor:
         idxs = []
         curr_time += self.start
         audio_total_duration = self.file_manager.audio_duration
-        for idx, (start_offset, finish_offset) in enumerate(zip(self.start_offsets, self.finish_offsets)):
-            if curr_time + start_offset >= 0.0 and audio_total_duration - finish_offset - curr_time + self.take_dur >= 0.0:
+        for idx, (start_offset, finish_offset) in enumerate(
+            zip(self.start_offsets, self.finish_offsets)
+        ):
+            if (
+                curr_time + start_offset >= 0.0
+                and audio_total_duration - finish_offset - curr_time + self.take_dur
+                >= 0.0
+            ):
                 idxs.append(idx)
         return idxs
 
@@ -96,13 +106,22 @@ class VideoEditor:
             frame_height = int(cap.get(CAP_PROP_FRAME_HEIGHT))
             start_offset = self.start_offsets[video_idx]
             # compute starting frame index for the current segment
-            start_frame = int(frame_rate * (time_frame+(
-                start_offset if (start_offset < 0.0 and -start_offset > self.start ) else 0.0)))
+            start_frame = int(
+                frame_rate
+                * (
+                    time_frame
+                    + (
+                        start_offset
+                        if (start_offset < 0.0 and -start_offset > self.start)
+                        else 0.0
+                    )
+                )
+            )
             # Set the starting frame
             cap.set(CAP_PROP_POS_FRAMES, start_frame)
             max_width, max_height = self.calculate_largest_rect(
-                    frame_width, frame_height
-                )
+                frame_width, frame_height
+            )
             # Extract and write frames for the segment
             for i in range(int(frame_rate * self.take_dur)):
                 ret, frame = cap.read()

@@ -23,10 +23,10 @@ class FFmpegWrapper:
     def create_command(self, parameters: list[str] = []):
         input = '-i "{}"'.format(self.i_path) if self.i_path != "" else ""
         command = self.FFMPEG_COMMAND.format(
-                    input=input,
-                    parameters=" ".join(parameters),
-                    o_path=self.o_path,
-                )
+            input=input,
+            parameters=" ".join(parameters),
+            o_path=self.o_path,
+        )
         self.current_command_batch.append(command)
 
     def run_current_batch(self, n_processes=1):
