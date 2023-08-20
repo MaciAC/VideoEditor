@@ -1,6 +1,7 @@
 import subprocess
 import re
 from time import sleep
+from logging import debug, info, error
 
 from constants import (
     NORM_AUDIO_CODEC,
@@ -8,8 +9,6 @@ from constants import (
     NORM_VIDEO_CODEC,
     NORM_FPS,
     CMD_LIST,
-    VIDEO_SYNC_FOLDER,
-    BLACK_PNG_FOLDER,
 )
 
 
@@ -27,6 +26,7 @@ class FFmpegWrapper:
             parameters=" ".join(parameters),
             o_path=self.o_path,
         )
+        debug(command)
         self.current_command_batch.append(command)
 
     def run_current_batch(self, n_processes=1):
@@ -47,10 +47,10 @@ class FFmpegWrapper:
         # Check the return code to determine if the subprocess completed successfully
         return_code = process.returncode
         if return_code == 0:
-            print("Completed!")
+            info("Batch completed")
             self.current_command_batch = []
         else:
-            print(f"Subprocess completed with an error (return code: {return_code})")
+            error(f"Subprocess completed with an error (return code: {return_code})")
 
     def to_wav(self, i_path: str, o_path: str) -> str:
         self.i_path = i_path
@@ -181,7 +181,6 @@ class FFmpegWrapper:
             width, height, frame_rate = ffprobe_output.strip().split("x")
         except ValueError:
             width, height, frame_rate, _ = ffprobe_output.strip().split("x")
-            print(width, height, frame_rate, _)
         if "/" in frame_rate:
             num, den = frame_rate.split("/")
             frame_rate = float(num) / float(den)

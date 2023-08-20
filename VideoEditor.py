@@ -3,15 +3,14 @@ from FileManager import FileManager
 from MultiTake import MultiTake
 from os.path import join
 from random import choice
+from logging import basicConfig, INFO, DEBUG, info, error
+
 from cv2 import (
     VideoWriter,
     VideoWriter_fourcc,
-    CAP_PROP_FPS,
-    CAP_PROP_FRAME_WIDTH,
-    CAP_PROP_FRAME_HEIGHT,
-    CAP_PROP_POS_FRAMES,
     resize,
     destroyAllWindows,
+    CAP_PROP_POS_FRAMES,
 )
 
 from constants import OUT_FOLDER, TMP_FOLDER, NORM_FPS
@@ -65,8 +64,9 @@ class VideoEditor:
             height_with_aspect_ratio = int(max_width / self.video_out_aspect_ratio)
             return max_width, height_with_aspect_ratio
 
-    def get_candidate_video_idxs(self, curr_time):
+    def get_candidate_video_idxs(self, curr_frame):
         idxs = []
+        curr_time = curr_frame/self.video_out_fps
         curr_time += self.start
         audio_total_duration = self.file_manager.audio_duration
         for idx, (start_offset, finish_offset) in enumerate(
@@ -80,6 +80,9 @@ class VideoEditor:
                 idxs.append(idx)
         return idxs
 
+    def get_candidate_change_frames(self):
+        return self.multitake.audio_beats
+
     def create_video(self):
         out_folder = self.file_manager.check_folder_in_path_and_create(
             OUT_FOLDER, self.base_folder
@@ -92,48 +95,39 @@ class VideoEditor:
             30,
             (self.video_out_width, self.video_out_heigth),
         )
+        change_frames = self.get_candidate_change_frames()
+        cap = None
+        for frame_idx in range(int(self.video_out_fps * self.video_duration)):
+            if not cap or frame_idx in change_frames:
+                if cap:
+                    cap.release()
+                info(f"Processing segment {frame_idx}")
+                candidate_idxs = self.get_candidate_video_idxs(frame_idx)
+                info(candidate_idxs)
+                video_idx = choice(candidate_idxs)
+                cap = self.multitake.get_video_clip(video_idx)
+                frame_width, frame_height, frame_rate = self.multitake.get_video_metadata(video_idx)
+                start_offset = self.start_offsets[video_idx]
+                start_offset_corrected = start_offset if (start_offset < 0.0 and -start_offset > self.start) else 0.0
+                # compute starting frame index for the current segment based on start_offset
+                start_frame = int(frame_rate * start_offset_corrected + frame_idx)
+                # Set the starting frame
+                info(f"start frame {start_frame}")
+                cap.set(CAP_PROP_POS_FRAMES, start_frame)
 
-        time_frame = 0
-        while time_frame < self.video_duration:
-            print("Processing segment", time_frame)
-            candidate_idxs = self.get_candidate_video_idxs(time_frame)
-            print(candidate_idxs)
-            video_idx = choice(candidate_idxs)
-            cap = self.multitake.get_video_clip(video_idx)
-            # get info from current video in use
-            frame_rate = int(cap.get(CAP_PROP_FPS))
-            frame_width = int(cap.get(CAP_PROP_FRAME_WIDTH))
-            frame_height = int(cap.get(CAP_PROP_FRAME_HEIGHT))
-            start_offset = self.start_offsets[video_idx]
-            # compute starting frame index for the current segment
-            start_frame = int(
-                frame_rate
-                * (
-                    time_frame
-                    + (
-                        start_offset
-                        if (start_offset < 0.0 and -start_offset > self.start)
-                        else 0.0
-                    )
-                )
-            )
-            # Set the starting frame
-            cap.set(CAP_PROP_POS_FRAMES, start_frame)
+            # Extract and write frames for the segment
+            ret, frame = cap.read()
+            if not ret:
+                error(f"Frame idx {frame_idx} not read for video {video_idx}")
+                continue
             max_width, max_height = self.calculate_largest_rect(
                 frame_width, frame_height
             )
-            # Extract and write frames for the segment
-            for i in range(int(frame_rate * self.take_dur)):
-                ret, frame = cap.read()
-                if not ret:
-                    break
-                crop_frame = frame[0:max_height, 0:max_width]
-                resized_frame = resize(
-                    crop_frame, (self.video_out_width, self.video_out_heigth)
-                )
-                out.write(resized_frame)
-            cap.release()
-            time_frame += self.take_dur
+            crop_frame = frame[0:max_height, 0:max_width]
+            resized_frame = resize(
+                crop_frame, (self.video_out_width, self.video_out_heigth)
+            )
+            out.write(resized_frame)
         # Release output video writer
         out.release()
         destroyAllWindows()
@@ -188,12 +182,23 @@ if __name__ == "__main__":
         help="Take change period in seconds",
     )
     parser.add_argument(
-        "--test",
+        "--test", "-t",
+        dest="test",
         action="store_true",
         help="Test execution won't delete temporary files",
     )
-
+    parser.add_argument(
+        "--debug", "-d",
+        dest="debug",
+        action="store_true",
+        help="Show debug messages and ffmpeg commands",
+    )
     args = parser.parse_args()
+    logging_format = "[%(asctime)s] %(filename)s:%(lineno)d\t%(levelname)s - %(message)s"
+    if args.debug:
+        basicConfig(level=DEBUG, format=logging_format,)
+    else:
+        basicConfig(level=INFO, format=logging_format,)
     if args.test:
         video_editor = VideoEditor(
             args.folder, args.start, args.duration, args.take_dur

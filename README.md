@@ -5,12 +5,13 @@ Project to develop a automatic multitake video editor. Based on the [MultiCam en
 TODOS:
 - ✅ Create new vertical video by changing takes among the multitake synched videos.
 - ✅ Use multiprocessing in FileManager.
-- 🚧 Allow to execute command with various parameters.
-- Refactor to Sync videos shorter than audio reference:
+- ✅ Change takes at the rythm of the music.
+- ✅ Use logging
+- ✅ Refactor to Sync videos shorter than audio reference:
     - ✅ use start_offset to get candidate videos per segment and
-    - use finish_offset to get candidate videos per segment
+    - ✅ use finish_offset to get candidate videos per segment
+- 🚧 Allow to execute command with various parameters.
 - Use Object detection to choose vertical subtakes from videos.
 - Video effects/transitions
 - Allow to use an extra folder with gifs...
-- Change takes at the rythm of the music.
-- Use logging
+

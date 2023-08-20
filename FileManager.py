@@ -5,7 +5,7 @@ from cv2 import imwrite
 from numpy import uint8, zeros
 from FfmpegWraper import FFmpegWrapper
 from Synchronizer import Synchronizer
-
+from logging import info
 from constants import (
     NORM_SR,
     TMP_FOLDER,
@@ -37,9 +37,9 @@ class FileManager:
     def remove_tmp_folder_and_contents(self):
         try:
             rmtree(self.temp_folder)
-            print(f"Folder '{self.temp_folder}' and its contents have been removed.")
+            info(f"Folder '{self.temp_folder}' and its contents have been removed.")
         except Exception as e:
-            print(f"An error occurred: {e}")
+            info(f"An error occurred: {e}")
 
     def _get_filepaths(self, folder_name):
         return [
@@ -75,7 +75,7 @@ class FileManager:
             out_paths.append(out_path)
         self.normalized_audiopaths = out_paths
         n_files = len(out_paths)
-        print(f"Creating {n_files} normalized audiofiles...")
+        info(f"Creating {n_files} normalized audiofiles...")
         self.ffmpeg_commands.run_current_batch(n_processes=n_files)
 
     def normalize_sync_videofiles(self) -> list[str]:
@@ -95,7 +95,7 @@ class FileManager:
             out_paths.append(out_path)
         self.normalized_videopaths = out_paths
         n_files = len(out_paths)
-        print(f"Creating {n_files} normalized sync videofiles...")
+        info(f"Creating {n_files} normalized sync videofiles...")
         self.ffmpeg_commands.run_current_batch(n_processes=n_files)
 
     def cut_audio_based_on_offsets(self, out_folder, start: int, duration: int):
@@ -111,8 +111,7 @@ class FileManager:
             duration,
         )
         self.sync_audiopath = audio_out_path
-        n_files = len(audio_out_path)
-        print(f"Cut sync audiofile...")
+        info(f"Cut sync audiofile...")
         self.ffmpeg_commands.run_current_batch(n_processes=1)
         self.audio_cut_duration = self.ffmpeg_commands.get_audio_duration(
             audio_out_path
@@ -141,7 +140,7 @@ class FileManager:
             self.ffmpeg_commands.cut_video(video_path, out_path, start_cut, duration)
             videos_out_path.append(out_path)
         n_files = len(videos_out_path)
-        print(f"Cutting {n_files} videofiles...")
+        info(f"Cutting {n_files} videofiles...")
         self.ffmpeg_commands.run_current_batch(n_processes=n_files)
         self.sync_videopaths = videos_out_path
         return self.start_offsets, self.finish_offsets
@@ -153,7 +152,7 @@ class FileManager:
     def video_audio_to_instavideo(
         self, input_audio_path, input_video_path, output_video_path
     ):
-        print("Joining video and audio...")
+        info("Joining video and audio...")
         self.ffmpeg_commands.join_video_and_audio(
             input_audio_path, input_video_path, output_video_path
         )
