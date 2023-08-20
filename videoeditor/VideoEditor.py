@@ -1,19 +1,18 @@
 from argparse import ArgumentParser, ArgumentTypeError
-from FileManager import FileManager
-from MultiTake import MultiTake
+from logging import DEBUG, INFO, basicConfig, error, info
 from os.path import join
 from random import choice
-from logging import basicConfig, INFO, DEBUG, info, error
 
+from constants import NORM_FPS, OUT_FOLDER, OUT_HEIGHT, OUT_WIDTH, TMP_FOLDER
 from cv2 import (
+    CAP_PROP_POS_FRAMES,
     VideoWriter,
     VideoWriter_fourcc,
-    resize,
     destroyAllWindows,
-    CAP_PROP_POS_FRAMES,
+    resize,
 )
-
-from constants import OUT_FOLDER, TMP_FOLDER, NORM_FPS
+from FileManager import FileManager
+from MultiTake import MultiTake
 
 
 class VideoEditor:
@@ -22,25 +21,21 @@ class VideoEditor:
         base_folder: str,
         start: int = 30,
         video_duration: int = 30,
-        take_dur=3.0,
     ) -> None:
         self.video_out_fps = int(NORM_FPS)
-        self.video_out_width = 1080
-        self.video_out_heigth = 1920
+        self.video_out_width = OUT_WIDTH
+        self.video_out_heigth = OUT_HEIGHT
         self.video_out_aspect_ratio = self.video_out_width / self.video_out_heigth
 
         self.start = start
         self.base_folder = base_folder
         self.video_duration = video_duration
-        self.take_dur = take_dur
         self.file_manager = FileManager(self.base_folder)
         self.file_manager.create_normalized_audiofiles()
         (
             self.start_offsets,
             self.finish_offsets,
-        ) = self.file_manager.cut_videos_based_on_offsets(
-            start=start, duration=video_duration
-        )
+        ) = self.file_manager.cut_videos_based_on_offsets(start=start, duration=video_duration)
         self.file_manager.normalize_sync_videofiles()
         self.multitake = MultiTake(
             self.file_manager.sync_audiopath, self.file_manager.normalized_videopaths
@@ -66,7 +61,7 @@ class VideoEditor:
 
     def get_candidate_video_idxs(self, curr_frame):
         idxs = []
-        curr_time = curr_frame/self.video_out_fps
+        curr_time = curr_frame / self.video_out_fps
         curr_time += self.start
         audio_total_duration = self.file_manager.audio_duration
         for idx, (start_offset, finish_offset) in enumerate(
@@ -74,8 +69,7 @@ class VideoEditor:
         ):
             if (
                 curr_time + start_offset >= 0.0
-                and audio_total_duration - finish_offset - curr_time + self.take_dur
-                >= 0.0
+                and audio_total_duration - finish_offset - curr_time + self.take_dur >= 0.0
             ):
                 idxs.append(idx)
         return idxs
@@ -106,9 +100,17 @@ class VideoEditor:
                 info(candidate_idxs)
                 video_idx = choice(candidate_idxs)
                 cap = self.multitake.get_video_clip(video_idx)
-                frame_width, frame_height, frame_rate = self.multitake.get_video_metadata(video_idx)
+                (
+                    frame_width,
+                    frame_height,
+                    frame_rate,
+                ) = self.multitake.get_video_metadata(video_idx)
                 start_offset = self.start_offsets[video_idx]
-                start_offset_corrected = start_offset if (start_offset < 0.0 and -start_offset > self.start) else 0.0
+                start_offset_corrected = (
+                    start_offset
+                    if (start_offset < 0.0 and -start_offset > self.start)
+                    else 0.0
+                )
                 # compute starting frame index for the current segment based on start_offset
                 start_frame = int(frame_rate * start_offset_corrected + frame_idx)
                 # Set the starting frame
@@ -120,13 +122,9 @@ class VideoEditor:
             if not ret:
                 error(f"Frame idx {frame_idx} not read for video {video_idx}")
                 continue
-            max_width, max_height = self.calculate_largest_rect(
-                frame_width, frame_height
-            )
+            max_width, max_height = self.calculate_largest_rect(frame_width, frame_height)
             crop_frame = frame[0:max_height, 0:max_width]
-            resized_frame = resize(
-                crop_frame, (self.video_out_width, self.video_out_heigth)
-            )
+            resized_frame = resize(crop_frame, (self.video_out_width, self.video_out_heigth))
             out.write(resized_frame)
         # Release output video writer
         out.release()
@@ -182,13 +180,15 @@ if __name__ == "__main__":
         help="Take change period in seconds",
     )
     parser.add_argument(
-        "--test", "-t",
+        "--test",
+        "-t",
         dest="test",
         action="store_true",
         help="Test execution won't delete temporary files",
     )
     parser.add_argument(
-        "--debug", "-d",
+        "--debug",
+        "-d",
         dest="debug",
         action="store_true",
         help="Show debug messages and ffmpeg commands",
@@ -196,13 +196,17 @@ if __name__ == "__main__":
     args = parser.parse_args()
     logging_format = "[%(asctime)s] %(filename)s:%(lineno)d\t%(levelname)s - %(message)s"
     if args.debug:
-        basicConfig(level=DEBUG, format=logging_format,)
-    else:
-        basicConfig(level=INFO, format=logging_format,)
-    if args.test:
-        video_editor = VideoEditor(
-            args.folder, args.start, args.duration, args.take_dur
+        basicConfig(
+            level=DEBUG,
+            format=logging_format,
         )
+    else:
+        basicConfig(
+            level=INFO,
+            format=logging_format,
+        )
+    if args.test:
+        video_editor = VideoEditor(args.folder, args.start, args.duration, args.take_dur)
         video_editor.create_video()
     else:
         with VideoEditor(

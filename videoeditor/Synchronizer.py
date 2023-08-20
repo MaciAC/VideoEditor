@@ -1,7 +1,8 @@
 import numpy as np
+from constants import NORM_SR
 from librosa import load
 from scipy.signal import fftconvolve
-from constants import NORM_SR
+
 
 class Synchronizer:
     def __init__(self, audio_paths):
@@ -14,9 +15,7 @@ class Synchronizer:
 
     def find_audio_offset(self, reference_audio, target_audio):
         # Use fftconvolve over inverted reference audio to compute cross correlation efficiently
-        cross_correlation = fftconvolve(
-            target_audio, reference_audio[::-1], mode="full"
-        )
+        cross_correlation = fftconvolve(target_audio, reference_audio[::-1], mode="full")
         offset = np.argmax(abs(cross_correlation)) - (len(reference_audio) - 1)
         return offset
 

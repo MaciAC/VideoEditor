@@ -1,25 +1,28 @@
-import subprocess
 import re
+import subprocess
+from logging import debug, error, info
 from time import sleep
-from logging import debug, info, error
 
-from constants import (
-    NORM_AUDIO_CODEC,
-    NORM_SR,
-    NORM_VIDEO_CODEC,
-    NORM_FPS,
-    CMD_LIST,
-)
+from constants import CMD_LIST, NORM_AUDIO_CODEC, NORM_FPS, NORM_SR, NORM_VIDEO_CODEC
 
 
 class FFmpegWrapper:
     FFMPEG_COMMAND = 'ffmpeg -loglevel error {input} {parameters} "{o_path}" -y'
-    FFMPEG_COMMAND_INSPECT = ["ffmpeg", "-i", ""]
+    FFMPEG_COMMAND_INSPECT = [
+        "ffmpeg",
+        "-i",
+        "",
+    ]
 
-    def __init__(self):
+    def __init__(
+        self,
+    ):
         self.current_command_batch = []
 
-    def create_command(self, parameters: list[str] = []):
+    def create_command(
+        self,
+        parameters: list[str] = [],
+    ):
         input = '-i "{}"'.format(self.i_path) if self.i_path != "" else ""
         command = self.FFMPEG_COMMAND.format(
             input=input,
@@ -29,11 +32,17 @@ class FFmpegWrapper:
         debug(command)
         self.current_command_batch.append(command)
 
-    def run_current_batch(self, n_processes=1):
+    def run_current_batch(
+        self,
+        n_processes=1,
+    ):
         MULTIPROCESS_COMMAND = f"cat {CMD_LIST} | xargs -n1 -P{n_processes} sh -c"
         cmds = "'\n'".join(self.current_command_batch)
         cmds_str = f"'{cmds}'\n"
-        with open(CMD_LIST, "w") as f:
+        with open(
+            CMD_LIST,
+            "w",
+        ) as f:
             f.write(cmds_str)
         process = subprocess.Popen(
             [MULTIPROCESS_COMMAND],
@@ -52,7 +61,11 @@ class FFmpegWrapper:
         else:
             error(f"Subprocess completed with an error (return code: {return_code})")
 
-    def to_wav(self, i_path: str, o_path: str) -> str:
+    def to_wav(
+        self,
+        i_path: str,
+        o_path: str,
+    ) -> str:
         self.i_path = i_path
         self.o_path = o_path
         parameters = [
@@ -66,7 +79,11 @@ class FFmpegWrapper:
         ]
         self.create_command(parameters)
 
-    def to_mp4(self, i_path: str, o_path: str) -> str:
+    def to_mp4(
+        self,
+        i_path: str,
+        o_path: str,
+    ) -> str:
         self.i_path = i_path
         self.o_path = o_path
         parameters = [
@@ -79,7 +96,11 @@ class FFmpegWrapper:
         self.create_command(parameters)
 
     def cut_audio(
-        self, i_path: str, o_path: str, start_offset_seconds: int, duration: int
+        self,
+        i_path: str,
+        o_path: str,
+        start_offset_seconds: int,
+        duration: int,
     ) -> str:
         self.i_path = i_path
         self.o_path = o_path
@@ -98,7 +119,11 @@ class FFmpegWrapper:
         self.create_command(parameters)
 
     def cut_video(
-        self, i_path: str, o_path: str, start_offset_seconds: int, duration: int
+        self,
+        i_path: str,
+        o_path: str,
+        start_offset_seconds: int,
+        duration: int,
     ) -> str:
         self.i_path = i_path
         self.o_path = o_path
@@ -114,7 +139,12 @@ class FFmpegWrapper:
         ]
         self.create_command(parameters)
 
-    def join_video_and_audio(self, i_a_path: str, i_v_path: str, o_path: str) -> str:
+    def join_video_and_audio(
+        self,
+        i_a_path: str,
+        i_v_path: str,
+        o_path: str,
+    ) -> str:
         self.i_path = i_v_path
         self.o_path = o_path
         parameters = [
@@ -139,19 +169,32 @@ class FFmpegWrapper:
         ]
         self.create_command(parameters)
 
-    def get_audio_duration(self, i_path):
+    def get_audio_duration(
+        self,
+        i_path,
+    ):
         retry = True
         while retry:
             try:
                 self.FFMPEG_COMMAND_INSPECT[-1] = i_path
                 result = subprocess.run(
-                    self.FFMPEG_COMMAND_INSPECT, capture_output=True, text=True
+                    self.FFMPEG_COMMAND_INSPECT,
+                    capture_output=True,
+                    text=True,
                 )
                 # Extract the duration from FFmpeg output using regex
                 duration_match = re.findall(
-                    r"Duration: \d+:\d+:\d+\.\d+", result.stderr
+                    r"Duration: \d+:\d+:\d+\.\d+",
+                    result.stderr,
                 )
-                duration_parts = duration_match[0].replace("Duration: ", "").split(":")
+                duration_parts = (
+                    duration_match[0]
+                    .replace(
+                        "Duration: ",
+                        "",
+                    )
+                    .split(":")
+                )
                 audio_duration = (
                     int(duration_parts[0]) * 3600
                     + int(duration_parts[1]) * 60
@@ -162,7 +205,10 @@ class FFmpegWrapper:
                 sleep(0.01)
                 continue
 
-    def get_width_height_framerate(self, input_video):
+    def get_width_height_framerate(
+        self,
+        input_video,
+    ):
         # Run ffprobe to get resolution and frame rate
         ffprobe_cmd = [
             "ffprobe",
@@ -176,17 +222,36 @@ class FFmpegWrapper:
             "csv=s=x:p=0",
             input_video,
         ]
-        ffprobe_output = subprocess.check_output(ffprobe_cmd, text=True)
+        ffprobe_output = subprocess.check_output(
+            ffprobe_cmd,
+            text=True,
+        )
         try:
-            width, height, frame_rate = ffprobe_output.strip().split("x")
+            (
+                width,
+                height,
+                frame_rate,
+            ) = ffprobe_output.strip().split("x")
         except ValueError:
-            width, height, frame_rate, _ = ffprobe_output.strip().split("x")
+            (
+                width,
+                height,
+                frame_rate,
+                _,
+            ) = ffprobe_output.strip().split("x")
         if "/" in frame_rate:
-            num, den = frame_rate.split("/")
+            (
+                num,
+                den,
+            ) = frame_rate.split("/")
             frame_rate = float(num) / float(den)
         else:
             frame_rate = float(frame_rate)
-        return int(width), int(height), frame_rate
+        return (
+            int(width),
+            int(height),
+            frame_rate,
+        )
 
 
 if __name__ == "__main__":

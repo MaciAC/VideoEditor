@@ -2,6 +2,8 @@
 NORM_SR = "8000"
 NORM_AUDIO_CODEC = "pcm_s16le"
 NORM_FPS = "30"
+OUT_WIDTH = 1080
+OUT_HEIGHT = 1920
 NORM_VIDEO_CODEC = "libx264"
 
 # filenames

@@ -1,79 +1,107 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox
-import cv2
-from PIL import Image, ImageTk
-from os.path import join, exists, isfile
-from os import listdir
 from math import ceil
+from os import listdir
+from os.path import exists, isfile, join
 from time import sleep
+from tkinter import filedialog, messagebox
 
+import cv2
 from MultiTake import MultiTake
+from PIL import Image, ImageTk
 
 
 class VideoTrack:
-    def __init__(self, canvas, video_path):
+    def __init__(
+        self,
+        canvas,
+        video_path,
+    ):
         self.canvas = canvas
         self.cap = cv2.VideoCapture(video_path)
         self.total_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
         self.frame_rate = int(self.cap.get(cv2.CAP_PROP_FPS))
-        self.frame_refresh_period = (
-            1000 // self.frame_rate if self.frame_rate > 0 else 10
-        )
+        self.frame_refresh_period = 1000 // self.frame_rate if self.frame_rate > 0 else 10
         self.paused = True
         self.current_frame = 0
         self.thumbnail_height = 50
         self.thumbnail_width = 100
         self.thumbnail_cap = cv2.VideoCapture(video_path)
-        self.thumbnail_cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.thumbnail_width)
-        self.thumbnail_cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.thumbnail_height)
+        self.thumbnail_cap.set(
+            cv2.CAP_PROP_FRAME_WIDTH,
+            self.thumbnail_width,
+        )
+        self.thumbnail_cap.set(
+            cv2.CAP_PROP_FRAME_HEIGHT,
+            self.thumbnail_height,
+        )
         self.window_width = self.canvas.winfo_width()
         self.widow_width_changed_n_times = 0
         self.num_thumbnails = ceil(self.canvas.winfo_width() / self.thumbnail_width)
         self.create_thumbnail()
         self.update()
 
-    def create_thumbnail(self):
+    def create_thumbnail(
+        self,
+    ):
         thumbnails = []
         frame_indices = [
             int(self.total_frames * fraction)
-            for fraction in [
-                i / self.num_thumbnails for i in range(self.num_thumbnails)
-            ]
+            for fraction in [i / self.num_thumbnails for i in range(self.num_thumbnails)]
         ]
 
         for frame_index in frame_indices:
-            self.thumbnail_cap.set(cv2.CAP_PROP_POS_FRAMES, frame_index)
-            ret, frame = self.thumbnail_cap.read()
+            self.thumbnail_cap.set(
+                cv2.CAP_PROP_POS_FRAMES,
+                frame_index,
+            )
+            (
+                ret,
+                frame,
+            ) = self.thumbnail_cap.read()
             if ret:
                 frame_thumbnail = cv2.resize(
-                    frame, (self.thumbnail_width, self.thumbnail_height)
+                    frame,
+                    (
+                        self.thumbnail_width,
+                        self.thumbnail_height,
+                    ),
                 )
                 thumbnails.append(frame_thumbnail)
 
         concatenated_thumbnails = cv2.hconcat(thumbnails)
         self.thumbnail = ImageTk.PhotoImage(
             image=Image.fromarray(
-                cv2.cvtColor(concatenated_thumbnails, cv2.COLOR_BGR2RGB)
+                cv2.cvtColor(
+                    concatenated_thumbnails,
+                    cv2.COLOR_BGR2RGB,
+                )
             )
         )
 
-    def play(self):
+    def play(
+        self,
+    ):
         self.paused = False
 
-    def pause(self):
+    def pause(
+        self,
+    ):
         self.paused = True
 
-    def set_current_frame(self, frame_index):
+    def set_current_frame(
+        self,
+        frame_index,
+    ):
         self.current_frame = frame_index
         self.update()
 
-    def update(self):
+    def update(
+        self,
+    ):
         if self.window_width != self.canvas.winfo_width():
             if self.widow_width_changed_n_times > 100:
                 self.window_width = self.canvas.winfo_width()
-                self.num_thumbnails = ceil(
-                    self.canvas.winfo_width() / self.thumbnail_width
-                )
+                self.num_thumbnails = ceil(self.canvas.winfo_width() / self.thumbnail_width)
                 self.create_thumbnail()
                 self.widow_width_changed_n_times = 0
             else:
@@ -81,7 +109,10 @@ class VideoTrack:
         else:
             self.widow_width_changed_n_times = 0
 
-        self.current_frame = min(self.current_frame, self.total_frames - 1)
+        self.current_frame = min(
+            self.current_frame,
+            self.total_frames - 1,
+        )
 
         timeline_width = self.canvas.winfo_width()
         timeline_position = self.current_frame * timeline_width // self.total_frames
@@ -96,14 +127,25 @@ class VideoTrack:
         )
         self.canvas.delete("thumbnail")
         self.canvas.create_image(
-            0, 0, image=self.thumbnail, anchor=tk.NW, tags="thumbnail"
+            0,
+            0,
+            image=self.thumbnail,
+            anchor=tk.NW,
+            tags="thumbnail",
         )
 
-        self.canvas.after(self.frame_refresh_period, self.update)
+        self.canvas.after(
+            self.frame_refresh_period,
+            self.update,
+        )
 
 
 class VideoViewer:
-    def __init__(self, canvas, video_path):
+    def __init__(
+        self,
+        canvas,
+        video_path,
+    ):
         self.canvas = canvas
         self.cap = cv2.VideoCapture(video_path)
         self.total_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -113,39 +155,73 @@ class VideoViewer:
         self.width = canvas.winfo_width()
         self.height = canvas.winfo_height()
 
-    def play(self):
+    def play(
+        self,
+    ):
         self.paused = False
         self.update()
 
-    def pause(self):
+    def pause(
+        self,
+    ):
         self.paused = True
 
-    def set_current_frame(self, frame_index):
+    def set_current_frame(
+        self,
+        frame_index,
+    ):
         self.current_frame = frame_index
 
-    def update(self):
+    def update(
+        self,
+    ):
         if not self.paused:
-            self.current_frame = min(self.current_frame, self.total_frames - 1)
+            self.current_frame = min(
+                self.current_frame,
+                self.total_frames - 1,
+            )
 
-            ret, frame = self.cap.read()
+            (
+                ret,
+                frame,
+            ) = self.cap.read()
             if ret:
-                frame = cv2.resize(frame, (self.width, self.height))
+                frame = cv2.resize(
+                    frame,
+                    (
+                        self.width,
+                        self.height,
+                    ),
+                )
                 photo = ImageTk.PhotoImage(
-                    image=Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+                    image=Image.fromarray(
+                        cv2.cvtColor(
+                            frame,
+                            cv2.COLOR_BGR2RGB,
+                        )
+                    )
                 )
                 self.canvas.delete("video_frame")
                 self.canvas.create_image(
-                    0, 0, image=photo, anchor=tk.NW, tags="video_frame"
+                    0,
+                    0,
+                    image=photo,
+                    anchor=tk.NW,
+                    tags="video_frame",
                 )
-                self.canvas.photo = (
-                    photo  # Prevent PhotoImage from being garbage collected
-                )
+                self.canvas.photo = photo  # Prevent PhotoImage from being garbage collected
 
-        self.canvas.after(self.frame_refresh_period, self.update)
+        self.canvas.after(
+            self.frame_refresh_period,
+            self.update,
+        )
 
 
 class MultiTrackVideoEditor:
-    def __init__(self, root):
+    def __init__(
+        self,
+        root,
+    ):
         self.root = root
         self.root.title("Multi-Track Video Editor")
 
@@ -161,29 +237,43 @@ class MultiTrackVideoEditor:
         self.viewer_width = 400
 
         add_track_button = tk.Button(
-            root, text="Create MultiTake", command=self.create_multitake
+            root,
+            text="Create MultiTake",
+            command=self.create_multitake,
         )
         add_track_button.pack()
 
         self.play_pause_button = tk.Button(
-            root, text="Play/Pause All", command=self.toggle_play_pause
+            root,
+            text="Play/Pause All",
+            command=self.toggle_play_pause,
         )
         self.play_pause_button.pack()
 
         # Create a canvas for video view
         self.video_view_canvas = tk.Canvas(
-            root, width=self.viewer_width, height=self.viewer_height
+            root,
+            width=self.viewer_width,
+            height=self.viewer_height,
         )
         self.video_view_canvas.pack()
 
-        self.root.bind("<Configure>", self.on_window_resize)
+        self.root.bind(
+            "<Configure>",
+            self.on_window_resize,
+        )
 
-    def on_window_resize(self, event):
+    def on_window_resize(
+        self,
+        event,
+    ):
         new_width = event.width
         for video_track in self.canvas_list:
             video_track.canvas.config(width=new_width)
 
-    def create_multitake(self):
+    def create_multitake(
+        self,
+    ):
         """
         folder_path = filedialog.askdirectory(title="Select Folder")
         if folder_path:
@@ -209,15 +299,21 @@ class MultiTrackVideoEditor:
         window_width = self.root.winfo_width()
         for video_path in self.multitake.sync_video_paths[:2]:
             canvas = tk.Canvas(
-                self.root, width=window_width, height=self.thumbnail_height
+                self.root,
+                width=window_width,
+                height=self.thumbnail_height,
             )
             canvas.pack()
-            video_track = VideoTrack(canvas, video_path)
+            video_track = VideoTrack(
+                canvas,
+                video_path,
+            )
             self.canvas_list.append(video_track)
 
         # Create a VideoViewer instance for the selected video
         self.video_viewer = VideoViewer(
-            self.video_view_canvas, self.multitake.sync_video_paths[0]
+            self.video_view_canvas,
+            self.multitake.sync_video_paths[0],
         )
         self.video_viewer.play()
         # Add a slider to control the frame shown in the video viewer
@@ -230,7 +326,9 @@ class MultiTrackVideoEditor:
         )
         self.frame_slider.pack()
 
-    def toggle_play_pause(self):
+    def toggle_play_pause(
+        self,
+    ):
         self.playing = not self.playing
         play_state = "Pause All" if self.playing else "Play All"
         if self.playing:
@@ -239,20 +337,31 @@ class MultiTrackVideoEditor:
             self.video_viewer.play()
         self.play_pause_button.config(text=play_state)
 
-    def update_timeline_position(self, position):
+    def update_timeline_position(
+        self,
+        position,
+    ):
         for video_track in self.canvas_list:
             timeline_position = int(position) * video_track.total_frames // 100
             video_track.set_current_frame(timeline_position)
 
-    def update_video_view(self, selected_video):
+    def update_video_view(
+        self,
+        selected_video,
+    ):
         # Clear previous contents of the video view canvas
         self.video_view_canvas.delete("all")
 
         # Load the selected video
-        video_track = VideoTrack(self.video_view_canvas, selected_video)
+        video_track = VideoTrack(
+            self.video_view_canvas,
+            selected_video,
+        )
         video_track.play()
 
-    def run(self):
+    def run(
+        self,
+    ):
         self.root.mainloop()
 
 
