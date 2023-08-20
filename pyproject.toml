@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "videoeditor"
+version = "0.1.0"
+description = ""
+authors = ["MaciAC <macia.ac@gmail.com>"]
+readme = "README.md"
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+opencv-python = "^4.8.0.76"
+llvmlite = "^0.40.1"
+librosa = "^0.10.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

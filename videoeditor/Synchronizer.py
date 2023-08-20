@@ -1,7 +1,7 @@
 import numpy as np
-from soundfile import read
+from librosa import load
 from scipy.signal import fftconvolve
-
+from constants import NORM_SR
 
 class Synchronizer:
     def __init__(self, audio_paths):
@@ -9,7 +9,7 @@ class Synchronizer:
         self.audio_reference = self.load_audio(audio_paths[-1])
 
     def load_audio(self, audio_path):
-        data, _ = read(audio_path)
+        data, _ = load(audio_path, dtype="float64", sr=int(NORM_SR))
         return data
 
     def find_audio_offset(self, reference_audio, target_audio):
