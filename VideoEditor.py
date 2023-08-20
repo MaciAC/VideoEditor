@@ -14,7 +14,7 @@ from cv2 import (
     destroyAllWindows,
 )
 
-from constants import OUT_FOLDER, NORM_FPS
+from constants import OUT_FOLDER, TMP_FOLDER, NORM_FPS
 
 class VideoEditor:
     def __init__(
@@ -64,8 +64,9 @@ class VideoEditor:
     def get_candidate_video_idxs(self, curr_time):
         idxs = []
         curr_time += self.start
+        audio_total_duration = self.file_manager.audio_duration
         for idx, (start_offset, finish_offset) in enumerate(zip(self.start_offsets, self.finish_offsets)):
-            if curr_time + start_offset >= 0.0:
+            if curr_time + start_offset >= 0.0 and audio_total_duration - finish_offset - curr_time + self.take_dur >= 0.0:
                 idxs.append(idx)
         return idxs
 
@@ -73,7 +74,7 @@ class VideoEditor:
         out_folder = self.file_manager.check_folder_in_path_and_create(
             OUT_FOLDER, self.base_folder
         )
-        video_tmp_path = join(out_folder, "tmp.mp4")
+        video_tmp_path = join(self.base_folder, TMP_FOLDER, "tmp.mp4")
         # Create an output video writer
         out = VideoWriter(
             video_tmp_path,

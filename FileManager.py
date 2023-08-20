@@ -31,6 +31,8 @@ class FileManager:
             self.ffmpeg_commands.get_width_height_framerate(p)
             for p in self.video_filepaths
         ]
+        self.audio_duration = self.ffmpeg_commands.get_audio_duration(self.audio_filepath)
+
 
     def remove_tmp_folder_and_contents(self):
         try:
@@ -109,9 +111,10 @@ class FileManager:
             duration,
         )
         self.sync_audiopath = audio_out_path
-        print("Cut audio...")
+        n_files = len(audio_out_path)
+        print(f"Creating {n_files} normalized sync videofiles...")
         self.ffmpeg_commands.run_current_batch(n_processes=1)
-        self.audio_duration = self.ffmpeg_commands.get_audio_duration(audio_out_path)
+        self.audio_cut_duration = self.ffmpeg_commands.get_audio_duration(audio_out_path)
 
     def cut_videos_based_on_offsets(self, start: int, duration: int):
         """
@@ -133,7 +136,6 @@ class FileManager:
                 video_path.split("/")[-1].rsplit(".", 1)[0] + ".mp4",
             )
             start_cut = max(0.0, start_offset + start)
-            print("Cut", video_path)
             self.ffmpeg_commands.cut_video(
                 video_path, out_path, start_cut, self.audio_duration
             )
