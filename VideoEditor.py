@@ -97,7 +97,7 @@ class VideoEditor:
             start_offset = self.start_offsets[video_idx]
             # compute starting frame index for the current segment
             start_frame = int(frame_rate * (time_frame+(
-                start_offset if start_offset < 0.0 else 0.0)))
+                start_offset if (start_offset < 0.0 and start_offset < self.start ) else 0.0)))
             # Set the starting frame
             cap.set(CAP_PROP_POS_FRAMES, start_frame)
 

@@ -8,7 +8,6 @@ from Synchronizer import Synchronizer
 
 from constants import (
     NORM_SR,
-    BLACK_PNG_FOLDER,
     TMP_FOLDER,
     AUDIO_FOLDER,
     VIDEO_FOLDER,
@@ -112,7 +111,7 @@ class FileManager:
         )
         self.sync_audiopath = audio_out_path
         n_files = len(audio_out_path)
-        print(f"Creating {n_files} normalized sync videofiles...")
+        print(f"Cut sync audiofile...")
         self.ffmpeg_commands.run_current_batch(n_processes=1)
         self.audio_cut_duration = self.ffmpeg_commands.get_audio_duration(audio_out_path)
 
@@ -137,7 +136,7 @@ class FileManager:
             )
             start_cut = max(0.0, start_offset + start)
             self.ffmpeg_commands.cut_video(
-                video_path, out_path, start_cut, self.audio_duration
+                video_path, out_path, start_cut, duration
             )
             videos_out_path.append(out_path)
         n_files = len(videos_out_path)
