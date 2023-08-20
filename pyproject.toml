@@ -1,3 +1,11 @@
+[tool.isort]
+profile = "black"
+
+[tool.black]
+line-length = 95
+target-version = ['py311']
+include = '\.pyi?$'
+
 [tool.poetry]
 name = "videoeditor"
 version = "0.1.0"
@@ -11,6 +19,7 @@ python = "^3.11"
 opencv-python = "^4.8.0.76"
 llvmlite = "^0.40.1"
 librosa = "^0.10.1"
+isort = "^5.12.0"
 
 
 [build-system]

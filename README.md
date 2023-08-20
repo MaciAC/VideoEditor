@@ -12,6 +12,7 @@ poetry install
 ```
 If you don't want to use poetry, install requirements.txt
 
+
 ## Roadmap
 
 - ✅ Create new vertical video by changing takes among the multitake synched videos.
@@ -19,7 +20,9 @@ If you don't want to use poetry, install requirements.txt
 - ✅ Change takes at the rythm of the music.
 - ✅ Crop frames
 - ✅ Use logging
+- ✅ Use poetry
 - 🚧 Allow to execute command with various parameters.
+    - Write usage section in README
 - Use Object detection to choose vertical subtakes from videos.
 - Video effects/transitions
 - Allow to use an extra folder with gifs...
