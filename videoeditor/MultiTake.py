@@ -4,25 +4,15 @@ from librosa import beat, load
 
 
 class MultiTake:
-    def __init__(
-        self,
-        audio_path,
-        video_paths,
-    ):
+    def __init__(self, audio_path, video_paths):
         self.audio_path = audio_path
         self.video_paths = video_paths
 
-        (
-            self.audio_clip,
-            self.sample_rate,
-        ) = load(
+        self.audio_clip, self.sample_rate = load(
             self.audio_path,
             dtype="float64",
         )
-        (
-            self.audio_tempo,
-            self.audio_beats,
-        ) = beat.beat_track(
+        self.audio_tempo, self.audio_beats = beat.beat_track(
             y=self.audio_clip,
             sr=self.sample_rate,
             units="time",
@@ -43,16 +33,10 @@ class MultiTake:
                 )
             )
 
-    def get_video_clip(
-        self,
-        video_idx,
-    ):
+    def get_video_clip(self, video_idx):
         return VideoCapture(self.video_paths[video_idx])
 
-    def get_video_metadata(
-        self,
-        video_idx,
-    ):
+    def get_video_metadata(self, video_idx):
         return self.video_metadata[video_idx]
 
 

@@ -1,6 +1,6 @@
 from logging import info
 from os import listdir, mkdir
-from os.path import exists, join
+from os.path import join
 from shutil import rmtree
 
 from constants import (
@@ -8,7 +8,6 @@ from constants import (
     NORM_AUDIO_FOLDER,
     NORM_SR,
     NORM_VIDEO_FOLDER,
-    TMP_FOLDER,
     VIDEO_FOLDER,
     VIDEO_SYNC_FOLDER,
 )
@@ -16,6 +15,7 @@ from cv2 import imwrite
 from FfmpegWraper import FFmpegWrapper
 from numpy import uint8, zeros
 from Synchronizer import Synchronizer
+from tempfile import mkdtemp
 
 
 class FileManager:
@@ -24,10 +24,7 @@ class FileManager:
         base_folder,
     ) -> None:
         self.base_folder = base_folder
-        self.temp_folder = self.check_folder_in_path_and_create(
-            TMP_FOLDER,
-            self.base_folder,
-        )
+        self.temp_folder = mkdtemp(dir=self.base_folder)
         self.audio_filepath = self._get_filepaths(AUDIO_FOLDER)[0]
         self.video_filepaths = sorted(self._get_filepaths(VIDEO_FOLDER))
         self.ffmpeg_commands = FFmpegWrapper()
@@ -71,29 +68,14 @@ class FileManager:
         self.start_offsets = [o[0] / int(NORM_SR) for o in offsets]
         self.finish_offsets = [o[1] / int(NORM_SR) for o in offsets]
 
-    def check_folder_in_path_and_create(
-        self,
-        folder,
-        path,
-    ):
-        out_folder = join(
-            path,
-            folder,
-        )
-        if not exists(out_folder):
-            mkdir(out_folder)
-        return out_folder
-
     def create_normalized_audiofiles(
         self,
     ) -> list[str]:
         """
         Convert reference audio and reate normalized audio files from video for synch purposes
         """
-        out_folder = self.check_folder_in_path_and_create(
-            NORM_AUDIO_FOLDER,
-            self.temp_folder,
-        )
+        out_folder = join(self.temp_folder, NORM_AUDIO_FOLDER)
+        mkdir(out_folder)
         out_paths = []
         for input_video_path in self.video_filepaths + [self.audio_filepath]:
             out_path = join(
@@ -120,10 +102,8 @@ class FileManager:
         """
         Create copies of all videos normalized
         """
-        out_folder = self.check_folder_in_path_and_create(
-            NORM_VIDEO_FOLDER,
-            self.temp_folder,
-        )
+        out_folder = join(self.temp_folder, NORM_VIDEO_FOLDER)
+        mkdir(out_folder)
         out_paths = []
         for input_video_path in self.sync_videopaths:
             out_path = join(
@@ -182,10 +162,8 @@ class FileManager:
         """
         synchronizer = Synchronizer(self.normalized_audiopaths)
         self.set_offsets(synchronizer.run())
-        out_folder = self.check_folder_in_path_and_create(
-            VIDEO_SYNC_FOLDER,
-            self.temp_folder,
-        )
+        out_folder = join(self.temp_folder, VIDEO_SYNC_FOLDER)
+        mkdir(out_folder)
         self.cut_audio_based_on_offsets(
             out_folder,
             start,

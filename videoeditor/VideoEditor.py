@@ -1,9 +1,10 @@
 from argparse import ArgumentParser, ArgumentTypeError
 from logging import DEBUG, INFO, basicConfig, error, info
-from os.path import join
+from os.path import join, exists
+from os import mkdir
 from random import choice
 
-from constants import NORM_FPS, OUT_FOLDER, OUT_HEIGHT, OUT_WIDTH, TMP_FOLDER
+from constants import NORM_FPS, OUT_FOLDER, OUT_HEIGHT, OUT_WIDTH
 from cv2 import (
     CAP_PROP_POS_FRAMES,
     VideoWriter,
@@ -78,10 +79,10 @@ class VideoEditor:
         return self.multitake.audio_beats
 
     def create_video(self):
-        out_folder = self.file_manager.check_folder_in_path_and_create(
-            OUT_FOLDER, self.base_folder
-        )
-        video_tmp_path = join(self.base_folder, TMP_FOLDER, "tmp.mp4")
+        out_folder = join(self.file_manager.base_folder, OUT_FOLDER)
+        if not exists(out_folder):
+            mkdir(out_folder)
+        video_tmp_path = join(self.file_manager.temp_folder, "tmp.mp4")
         # Create an output video writer
         out = VideoWriter(
             video_tmp_path,
@@ -200,7 +201,5 @@ if __name__ == "__main__":
         video_editor = VideoEditor(args.folder, args.start, args.duration)
         video_editor.create_video()
     else:
-        with VideoEditor(
-            args.folder, args.start, args.duration
-        ) as video_editor:
+        with VideoEditor(args.folder, args.start, args.duration) as video_editor:
             video_editor.create_video()

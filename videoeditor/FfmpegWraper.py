@@ -60,6 +60,8 @@ class FFmpegWrapper:
             self.current_command_batch = []
         else:
             error(f"Subprocess completed with an error (return code: {return_code})")
+            for cmd in self.current_command_batch:
+                error(cmd)
 
     def to_wav(
         self,
